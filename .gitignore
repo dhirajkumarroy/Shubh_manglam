@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Production builds & caches
+dist/
+**/dist/
+build/
+**/build/
+.expo/
+**/.expo/
+*.log
+**/logs/
+
+# Local Environment Variables (Never commit secrets)
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# OS Files
+.DS_Store
+**/.DS_Store
+Thumbs.db
+

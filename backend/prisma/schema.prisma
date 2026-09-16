@@ -1,0 +1,1153 @@
+// =========================================================================
+// SHUBH MANGALAM — PRISMA DATABASE SCHEMA
+// "Har Function, Ek App"
+// Local Celebration & Event-Services Marketplace
+// =========================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================================================================
+// 1. ENUMS — USER & ROLES
+// =========================================================================
+
+enum UserRole {
+  CUSTOMER
+  VENDOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+// =========================================================================
+// 2. ENUMS — VENDOR & VERIFICATION
+// =========================================================================
+
+enum VendorStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DocumentType {
+  BUSINESS_REGISTRATION
+  IDENTITY_PROOF
+  ADDRESS_PROOF
+  TAX_DOCUMENT
+  CERTIFICATE
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// =========================================================================
+// 3. ENUMS — SERVICES & PRICING
+// =========================================================================
+
+enum PricingType {
+  FIXED
+  PER_PERSON
+  PER_UNIT
+  PER_DAY
+  PER_HOUR
+  CUSTOM_QUOTE
+}
+
+// =========================================================================
+// 4. ENUMS — EVENTS & REQUIREMENTS
+// =========================================================================
+
+enum EventStatus {
+  DRAFT
+  PLANNING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RequirementStatus {
+  OPEN
+  QUOTED
+  BOOKED
+  CANCELLED
+}
+
+// =========================================================================
+// 5. ENUMS — QUOTATIONS & BOOKINGS
+// =========================================================================
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  QUOTE_REQUIRED
+  QUOTE_RECEIVED
+  CONFIRMED
+  PAYMENT_PENDING
+  PAID
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+  REFUND_PENDING
+  REFUNDED
+}
+
+// =========================================================================
+// 6. ENUMS — PAYMENTS, REFUNDS, COMMISSIONS & PAYOUTS
+// =========================================================================
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum CommissionStatus {
+  PENDING
+  CALCULATED
+  DEDUCTED
+  WAIVED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// =========================================================================
+// 7. ENUMS — NOTIFICATIONS
+// =========================================================================
+
+enum NotificationType {
+  REQUEST_CREATED
+  OWNER_ACCEPTED
+  OWNER_REJECTED
+  PAYMENT_SUCCESSFUL
+  TRIP_COMPLETED
+  SYSTEM
+  BOOKING
+  QUOTE_RECEIVED
+  QUOTE_ACCEPTED
+  VENDOR_APPROVED
+  PROMOTIONAL
+}
+
+// =========================================================================
+// 8. CORE USER DOMAIN
+// =========================================================================
+
+model User {
+  id              String     @id @default(uuid())
+  name            String
+  email           String     @unique
+  phone           String     @unique
+  passwordHash    String     @map("password")
+  role            UserRole   @default(CUSTOMER)
+  avatar          String?
+  emailVerified   Boolean    @default(false)
+  phoneVerified   Boolean    @default(false)
+  isEmailVerified Boolean    @default(false) // Legacy compatibility alias
+  isBlocked       Boolean    @default(false) // Legacy compatibility alias
+  status          UserStatus @default(ACTIVE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Shubh Mangalam Marketplace Relations
+  addresses      Address[]
+  vendorProfile  Vendor?
+  events         Event[]
+  bookings       Booking[]
+  quotesReceived Quote[]        @relation("CustomerQuotes")
+  reviews        Review[]
+  favorites      Favorite[]
+  notifications  Notification[]
+  payments       Payment[]
+  couponUsages   CouponUsage[]
+  auditLogs      AuditLog[]
+
+  // Legacy GoVehicle Relations (Preserved for compatibility)
+  vehicles         Vehicle[]
+  requestsCreated  TransportRequest[] @relation("CustomerRequests")
+  requestsAssigned TransportRequest[] @relation("OwnerRequests")
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  email     String
+  code      String // Hashed OTP
+  type      String // EMAIL_VERIFICATION, PASSWORD_RESET
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("otps")
+}
+
+// =========================================================================
+// 9. ADDRESS DOMAIN
+// =========================================================================
+
+model Address {
+  id           String   @id @default(uuid())
+  userId       String
+  label        String? // e.g. "Home", "Office", "Venue"
+  addressLine1 String
+  addressLine2 String?
+  village      String?
+  locality     String?
+  city         String
+  district     String?
+  state        String
+  country      String   @default("India")
+  pincode      String
+  latitude     Decimal? @db.Decimal(10, 7)
+  longitude    Decimal? @db.Decimal(10, 7)
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([city])
+  @@index([pincode])
+  @@map("addresses")
+}
+
+// =========================================================================
+// 10. VENDOR DOMAIN
+// =========================================================================
+
+model Vendor {
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  businessName      String
+  slug              String       @unique
+  description       String?      @db.Text
+  phone             String
+  email             String?
+  logo              String?
+  coverImage        String?
+  addressLine1      String
+  addressLine2      String?
+  village           String?
+  locality          String?
+  city              String
+  district          String?
+  state             String
+  country           String       @default("India")
+  pincode           String
+  latitude          Decimal      @db.Decimal(10, 7)
+  longitude         Decimal      @db.Decimal(10, 7)
+  operatingRadiusKm Decimal      @default(25.0) @db.Decimal(6, 2)
+  status            VendorStatus @default(PENDING)
+  isVerified        Boolean      @default(false)
+  isActive          Boolean      @default(true)
+  ratingAverage     Decimal      @default(0.0) @db.Decimal(3, 2)
+  ratingCount       Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Relations
+  user           User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  documents      VendorDocument[]
+  categories     VendorCategory[]
+  services       Service[]
+  packages       Package[]
+  quotes         Quote[]          @relation("VendorQuotes")
+  bookings       Booking[]        @relation("VendorBookings")
+  reviews        Review[]         @relation("VendorReviews")
+  favorites      Favorite[]
+  availabilities Availability[]
+  timeSlots      TimeSlot[]
+  commissions    Commission[]
+  payouts        VendorPayout[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([city])
+  @@index([latitude, longitude])
+  @@index([isActive])
+  @@index([ratingAverage])
+  @@map("vendors")
+}
+
+model VendorDocument {
+  id              String         @id @default(uuid())
+  vendorId        String
+  documentType    DocumentType
+  documentUrl     String
+  status          DocumentStatus @default(PENDING)
+  rejectionReason String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vendor_documents")
+}
+
+// =========================================================================
+// 11. CATEGORY DOMAIN
+// =========================================================================
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  icon        String?
+  image       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vendorCategories    VendorCategory[]
+  services            Service[]
+  eventTypeCategories EventTypeCategory[]
+  eventRequirements   EventRequirement[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+model VendorCategory {
+  id         String   @id @default(uuid())
+  vendorId   String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  vendor   Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([vendorId, categoryId])
+  @@index([vendorId])
+  @@index([categoryId])
+  @@map("vendor_categories")
+}
+
+// =========================================================================
+// 12. SERVICE & SERVICE IMAGES DOMAIN
+// =========================================================================
+
+model Service {
+  id              String      @id @default(uuid())
+  vendorId        String
+  categoryId      String
+  name            String
+  slug            String
+  description     String?     @db.Text
+  pricingType     PricingType @default(FIXED)
+  basePrice       Decimal?    @db.Decimal(12, 2)
+  minPrice        Decimal?    @db.Decimal(12, 2)
+  maxPrice        Decimal?    @db.Decimal(12, 2)
+  minQuantity     Int?        @default(1)
+  maxQuantity     Int?
+  durationMinutes Int?
+  isAvailable     Boolean     @default(true)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  vendor          Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images          ServiceImage[]
+  packageServices PackageService[]
+  bookingItems    BookingItem[]
+  quoteItems      QuoteItem[]
+  favorites       Favorite[]
+  availabilities  Availability[]
+
+  @@unique([vendorId, slug])
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([pricingType])
+  @@map("services")
+}
+
+model ServiceImage {
+  id        String   @id @default(uuid())
+  serviceId String
+  url       String
+  publicId  String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@index([isPrimary])
+  @@map("service_images")
+}
+
+// =========================================================================
+// 13. PACKAGE DOMAIN
+// =========================================================================
+
+model Package {
+  id              String   @id @default(uuid())
+  vendorId        String
+  name            String
+  slug            String
+  description     String?  @db.Text
+  price           Decimal  @db.Decimal(12, 2)
+  originalPrice   Decimal? @db.Decimal(12, 2)
+  discountPercent Decimal? @db.Decimal(5, 2)
+  durationMinutes Int?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  vendor       Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  services     PackageService[]
+  bookingItems BookingItem[]
+
+  @@unique([vendorId, slug])
+  @@index([vendorId])
+  @@index([isActive])
+  @@map("packages")
+}
+
+model PackageService {
+  id        String   @id @default(uuid())
+  packageId String
+  serviceId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([packageId, serviceId])
+  @@index([packageId])
+  @@index([serviceId])
+  @@map("package_services")
+}
+
+// =========================================================================
+// 14. EVENT TYPE & RECOMMENDATION MAPPING
+// =========================================================================
+
+model EventType {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  icon        String?
+  image       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categories EventTypeCategory[]
+  events     Event[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("event_types")
+}
+
+model EventTypeCategory {
+  id            String   @id @default(uuid())
+  eventTypeId   String
+  categoryId    String
+  isRecommended Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([eventTypeId, categoryId])
+  @@index([eventTypeId])
+  @@index([categoryId])
+  @@map("event_type_categories")
+}
+
+// =========================================================================
+// 15. CUSTOMER EVENT DOMAIN & REQUIREMENTS
+// =========================================================================
+
+model Event {
+  id           String      @id @default(uuid())
+  customerId   String
+  eventTypeId  String
+  title        String
+  description  String?     @db.Text
+  eventDate    DateTime
+  startTime    String? // "18:00"
+  endTime      String? // "23:00"
+  guestCount   Int?
+  budgetMin    Decimal?    @db.Decimal(12, 2)
+  budgetMax    Decimal?    @db.Decimal(12, 2)
+  addressLine1 String
+  city         String
+  pincode      String
+  latitude     Decimal?    @db.Decimal(10, 7)
+  longitude    Decimal?    @db.Decimal(10, 7)
+  status       EventStatus @default(PLANNING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  customer     User               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  eventType    EventType          @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  requirements EventRequirement[]
+  bookings     Booking[]
+  quotes       Quote[]
+
+  @@index([customerId])
+  @@index([eventTypeId])
+  @@index([eventDate])
+  @@index([status])
+  @@index([city])
+  @@map("events")
+}
+
+model EventRequirement {
+  id         String            @id @default(uuid())
+  eventId    String
+  categoryId String
+  quantity   Int               @default(1)
+  budgetMin  Decimal?          @db.Decimal(12, 2)
+  budgetMax  Decimal?          @db.Decimal(12, 2)
+  notes      String?           @db.Text
+  status     RequirementStatus @default(OPEN)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([eventId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("event_requirements")
+}
+
+// =========================================================================
+// 16. VENDOR AVAILABILITY & TIME SLOTS
+// =========================================================================
+
+model Availability {
+  id          String   @id @default(uuid())
+  vendorId    String
+  serviceId   String?
+  date        DateTime @db.Date
+  isAvailable Boolean  @default(true)
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vendor  Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, serviceId, date])
+  @@index([vendorId, date])
+  @@map("availabilities")
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  vendorId  String
+  dayOfWeek Int // 0 = Sunday, 6 = Saturday
+  startTime String // "09:00"
+  endTime   String // "21:00"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId, dayOfWeek])
+  @@map("time_slots")
+}
+
+// =========================================================================
+// 17. CUSTOM QUOTATIONS
+// =========================================================================
+
+model Quote {
+  id          String      @id @default(uuid())
+  quoteNumber String      @unique
+  vendorId    String
+  customerId  String
+  eventId     String?
+  bookingId   String?
+  subtotal    Decimal     @db.Decimal(12, 2)
+  discount    Decimal     @default(0.0) @db.Decimal(12, 2)
+  tax         Decimal     @default(0.0) @db.Decimal(12, 2)
+  total       Decimal     @db.Decimal(12, 2)
+  validUntil  DateTime
+  status      QuoteStatus @default(SENT)
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  vendor   Vendor      @relation("VendorQuotes", fields: [vendorId], references: [id], onDelete: Restrict)
+  customer User        @relation("CustomerQuotes", fields: [customerId], references: [id], onDelete: Restrict)
+  event    Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  booking  Booking?    @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  items    QuoteItem[]
+
+  @@index([vendorId])
+  @@index([customerId])
+  @@index([eventId])
+  @@index([bookingId])
+  @@index([status])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id          String   @id @default(uuid())
+  quoteId     String
+  serviceId   String?
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  totalPrice  Decimal  @db.Decimal(12, 2)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+// =========================================================================
+// 18. BOOKING DOMAIN
+// =========================================================================
+
+model Booking {
+  id            String        @id @default(uuid())
+  bookingNumber String        @unique
+  eventId       String?
+  customerId    String
+  vendorId      String
+  status        BookingStatus @default(PENDING)
+  subtotal      Decimal       @db.Decimal(12, 2)
+  discount      Decimal       @default(0.0) @db.Decimal(12, 2)
+  tax           Decimal       @default(0.0) @db.Decimal(12, 2)
+  platformFee   Decimal       @default(0.0) @db.Decimal(12, 2)
+  total         Decimal       @db.Decimal(12, 2)
+  customerNote  String?       @db.Text
+  vendorNote    String?       @db.Text
+  confirmedAt   DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  event       Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  customer    User           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vendor      Vendor         @relation("VendorBookings", fields: [vendorId], references: [id], onDelete: Restrict)
+  items       BookingItem[]
+  quotes      Quote[]
+  payments    Payment[]
+  commissions Commission[]
+  payouts     VendorPayout[]
+  review      Review?
+
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([eventId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("bookings")
+}
+
+model BookingItem {
+  id         String   @id @default(uuid())
+  bookingId  String
+  serviceId  String?
+  packageId  String?
+  name       String // Historical snapshot name
+  quantity   Int      @default(1)
+  unitPrice  Decimal  @db.Decimal(12, 2)
+  totalPrice Decimal  @db.Decimal(12, 2)
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  package Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@map("booking_items")
+}
+
+// =========================================================================
+// 19. PAYMENT & REFUND DOMAIN
+// =========================================================================
+
+model Payment {
+  id                String        @id @default(uuid())
+  bookingId         String?
+  requestId         String? // Legacy GoVehicle relation
+  userId            String
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("INR")
+  provider          String        @default("RAZORPAY")
+  providerOrderId   String?       @unique
+  providerPaymentId String?       @unique
+  providerSignature String?
+  status            PaymentStatus @default(PENDING)
+  method            String? // UPI, CARD, NETBANKING, COD
+  paidAt            DateTime?
+  failureReason     String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  booking          Booking?          @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  transportRequest TransportRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  refunds          Refund[]
+
+  @@index([bookingId])
+  @@index([requestId])
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Refund {
+  id               String       @id @default(uuid())
+  paymentId        String
+  amount           Decimal      @db.Decimal(12, 2)
+  reason           String?      @db.Text
+  status           RefundStatus @default(PENDING)
+  providerRefundId String?      @unique
+  processedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@index([status])
+  @@map("refunds")
+}
+
+// =========================================================================
+// 20. COMMISSION & VENDOR PAYOUT DOMAIN
+// =========================================================================
+
+model Commission {
+  id         String           @id @default(uuid())
+  bookingId  String
+  vendorId   String
+  amount     Decimal          @db.Decimal(12, 2)
+  percentage Decimal          @db.Decimal(5, 2)
+  status     CommissionStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  vendor  Vendor  @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([status])
+  @@map("commissions")
+}
+
+model VendorPayout {
+  id        String       @id @default(uuid())
+  vendorId  String
+  bookingId String?
+  amount    Decimal      @db.Decimal(12, 2)
+  status    PayoutStatus @default(PENDING)
+  paidAt    DateTime?
+  reference String? // UTR / IMPS / Bank transfer reference
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  vendor  Vendor   @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([bookingId])
+  @@index([status])
+  @@map("vendor_payouts")
+}
+
+// =========================================================================
+// 21. REVIEW & FAVORITES DOMAIN
+// =========================================================================
+
+model Review {
+  id          String   @id @default(uuid())
+  bookingId   String   @unique
+  customerId  String
+  vendorId    String
+  rating      Int // Validated 1 to 5
+  comment     String?  @db.Text
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer User    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vendor   Vendor  @relation("VendorReviews", fields: [vendorId], references: [id], onDelete: Restrict)
+
+  @@index([vendorId])
+  @@index([customerId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  customerId String
+  vendorId   String?
+  serviceId  String?
+  createdAt  DateTime @default(now())
+
+  customer User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vendor   Vendor?  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  service  Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, vendorId, serviceId])
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([serviceId])
+  @@map("favorites")
+}
+
+// =========================================================================
+// 22. NOTIFICATION DOMAIN
+// =========================================================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// =========================================================================
+// 23. COUPON & PROMOTIONS DOMAIN
+// =========================================================================
+
+model Coupon {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  description   String?
+  discountType  String   @default("PERCENTAGE") // PERCENTAGE or FIXED
+  discountValue Decimal  @db.Decimal(10, 2)
+  minOrderValue Decimal? @db.Decimal(10, 2)
+  maxDiscount   Decimal? @db.Decimal(10, 2)
+  usageLimit    Int?
+  usageCount    Int      @default(0)
+  startDate     DateTime
+  endDate       DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  usages CouponUsage[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id       String   @id @default(uuid())
+  couponId String
+  userId   String
+  orderId  String?
+  discount Decimal  @db.Decimal(10, 2)
+  usedAt   DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([couponId])
+  @@index([userId])
+  @@map("coupon_usages")
+}
+
+// =========================================================================
+// 24. ADMIN PLATFORM CONTENT & AUDIT
+// =========================================================================
+
+model AdminSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("STRING") // STRING, BOOLEAN, NUMBER, JSON
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("admin_settings")
+}
+
+model Banner {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  image       String
+  link        String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("banners")
+}
+
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String   @db.Text
+  category  String   @default("GENERAL")
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@map("faqs")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// =========================================================================
+// 25. LEGACY GOVEHICLE MODELS (PRESERVED TEMPORARILY)
+// =========================================================================
+
+enum Role {
+  CUSTOMER
+  OWNER
+  ADMIN
+}
+
+enum VehicleCategory {
+  BIKE
+  AUTO
+  CAR
+  SUV
+  PICKUP
+  MINI_TRUCK
+  TRACTOR
+  BUS
+  LUXURY_CAR
+}
+
+enum BookingPurpose {
+  PERSONAL_TRAVEL
+  MARKET_TRANSPORT
+  GOODS_DELIVERY
+  HOUSE_SHIFTING
+  WEDDING
+  AGRICULTURE
+  CONSTRUCTION
+  EMERGENCY
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  OWNER_ASSIGNED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  CNG
+  ELECTRIC
+  HYBRID
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum VehicleStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+model Vehicle {
+  id                 String          @id @default(uuid())
+  ownerId            String
+  title              String
+  brand              String
+  model              String
+  year               Int
+  vehicleNumber      String          @unique
+  fuelType           FuelType
+  transmission       Transmission
+  category           VehicleCategory @default(CAR)
+  description        String
+  status             VehicleStatus   @default(PENDING)
+  isAvailable        Boolean         @default(true)
+  operatingLatitude  Float?
+  operatingLongitude Float?
+  operatingRadius    Float?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  images            VehicleImage[]
+  transportRequests TransportRequest[]
+
+  @@index([ownerId])
+  @@index([category])
+  @@index([status])
+  @@index([isAvailable])
+  @@map("vehicles")
+}
+
+model VehicleImage {
+  id        String   @id @default(uuid())
+  vehicleId String
+  imageUrl  String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_images")
+}
+
+model TransportRequest {
+  id                      String          @id @default(uuid())
+  customerId              String
+  assignedOwnerId         String?
+  assignedVehicleId       String?
+  purpose                 BookingPurpose
+  description             String          @db.Text
+  pickupAddress           String
+  pickupLatitude          Float
+  pickupLongitude         Float
+  dropAddress             String
+  dropLatitude            Float
+  dropLongitude           Float
+  distanceKm              Float           @default(0.0)
+  requiredVehicleCategory VehicleCategory
+  scheduledAt             DateTime
+  estimatedFare           Float
+  status                  RequestStatus   @default(PENDING)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  customer        User      @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
+  assignedOwner   User?     @relation("OwnerRequests", fields: [assignedOwnerId], references: [id], onDelete: SetNull)
+  assignedVehicle Vehicle?  @relation(fields: [assignedVehicleId], references: [id], onDelete: SetNull)
+  payments        Payment[]
+
+  @@index([customerId])
+  @@index([assignedOwnerId])
+  @@index([assignedVehicleId])
+  @@index([status])
+  @@index([requiredVehicleCategory])
+  @@map("transport_requests")
+}
+
+model FareRule {
+  id         String          @id @default(uuid())
+  category   VehicleCategory @unique
+  baseFare   Float
+  ratePerKm  Float
+  ratePerMin Float           @default(0.0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@map("fare_rules")
+}
