@@ -1,17 +1,17 @@
 import { Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../common/utils/generate-jwt';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
-import { UnauthorizedError, ForbiddenError } from '../common/utils/app-error';
+import { UnauthorizedError } from '../common/utils/app-error';
 
 /**
  * Express middleware to authenticate API requests by verifying a Bearer access token.
  * Appends decodable JwtPayload onto req.user on success, otherwise routes to central error handling.
  */
-export const authenticateRequest = (
+export const authenticateRequest = async (
   req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -24,6 +24,9 @@ export const authenticateRequest = (
     }
 
     const decoded = verifyAccessToken(token);
+    if (!decoded.userId && decoded.sub) {
+      decoded.userId = decoded.sub;
+    }
     req.user = decoded;
     next();
   } catch (error) {
@@ -31,22 +34,12 @@ export const authenticateRequest = (
   }
 };
 
-/**
- * Express middleware to enforce that the authenticated user possesses the ADMIN role.
- * Yields a 403 Forbidden if the check fails.
- */
-export const requireAdmin = (
-  req: AuthenticatedRequest,
-  _res: Response,
-  next: NextFunction
-): void => {
-  if (!req.user) {
-    return next(new UnauthorizedError('Authentication required.'));
-  }
-  if (req.user.role !== 'ADMIN') {
-    return next(new ForbiddenError('Access forbidden. Admin role required.'));
-  }
-  next();
-};
+export {
+  requireRole,
+  requireCustomer,
+  requireVendor,
+  requireAdmin,
+  requireApprovedVendor,
+} from './role.middleware';
 
 export default authenticateRequest;

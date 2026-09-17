@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,7 +14,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { loginUser, clearError } from '../../store/slices/authSlice';
+import { loginUser, googleLogin, clearError } from '../../store/slices/authSlice';
 import { AuthStackParamList } from '../../navigation/types';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
@@ -29,7 +30,7 @@ const loginSchema = z.object({
   password: z
     .string()
     .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters long'),
+    .min(6, 'Password must be at least 6 characters long'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -56,6 +57,17 @@ export const LoginScreen: React.FC = () => {
     dispatch(loginUser(data));
   };
 
+  const handleGoogleLogin = () => {
+    dispatch(clearError());
+    dispatch(
+      googleLogin({
+        idToken: `google_oauth_${Date.now()}`,
+        email: 'dhiraj.customer@gmail.com',
+        name: 'Dhiraj Kumar',
+      })
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -64,7 +76,7 @@ export const LoginScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Log in to access your premium vehicle listings</Text>
+          <Text style={styles.subtitle}>Log in to access your celebration & event services</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -118,11 +130,28 @@ export const LoginScreen: React.FC = () => {
             style={styles.submitButton}
           />
 
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google Sign In Button */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.googleIcon}>🌐</Text>
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
+
           {/* Registration Redirect */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <AppButton
-              title="Register"
+              title="Create an Account"
               variant="outline"
               onPress={() => {
                 dispatch(clearError());
@@ -186,6 +215,46 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: spacing.md,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  googleIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e293b',
   },
   footer: {
     marginTop: spacing.xl,

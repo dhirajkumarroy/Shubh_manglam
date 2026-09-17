@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import Config from '../config';
 
@@ -10,11 +10,28 @@ const apiClient = axios.create({
   },
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request interceptor to automatically inject active JWT credentials
 apiClient.interceptors.request.use(
-  async (config) => {
+  async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await SecureStore.getItemAsync('accessToken');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -28,17 +45,77 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle global exception models
+// Response interceptor with automatic token refresh queue/lock
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Collect error message from backend error format
+  async (error: AxiosError<any>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // If 401 Unauthorized and not already retried and not the refresh endpoint itself
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !originalRequest.url?.includes('/auth/login')
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const storedRefreshToken = await SecureStore.getItemAsync('refreshToken');
+        if (!storedRefreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        const refreshResponse = await axios.post(
+          `${Config.API_URL}/auth/refresh`,
+          { refreshToken: storedRefreshToken },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
+
+        await SecureStore.setItemAsync('accessToken', accessToken);
+        if (newRefreshToken) {
+          await SecureStore.setItemAsync('refreshToken', newRefreshToken);
+        }
+
+        processQueue(null, accessToken);
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        }
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        await SecureStore.deleteItemAsync('accessToken');
+        await SecureStore.deleteItemAsync('refreshToken');
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     const errorMessage =
       error.response?.data?.message ||
       error.response?.data?.errors ||
       error.message ||
       'An unexpected error occurred.';
-    
+
     return Promise.reject(new Error(errorMessage));
   }
 );

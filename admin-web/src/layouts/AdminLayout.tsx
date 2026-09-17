@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -9,8 +9,10 @@ import {
   CreditCard, 
   Star, 
   Settings, 
-  Bell 
+  Bell,
+  LogOut 
 } from 'lucide-react';
+import { useAuth } from '../store/AuthContext';
 
 const NAVIGATION_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -24,6 +26,14 @@ const NAVIGATION_ITEMS = [
 ];
 
 export const AdminLayout: React.FC = () => {
+  const { admin, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className="min-h-screen flex bg-[#FAF8F5]">
       {/* Sidebar */}
@@ -61,11 +71,18 @@ export const AdminLayout: React.FC = () => {
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-[#E7E0D8] bg-[#FAF8F5]">
-          <div className="text-xs text-[#78716C]">
-            <p className="font-semibold text-[#1C1917]">Shubh Mangalam Platform</p>
-            <p>Phase 0: Multi-App Foundation</p>
+        {/* Sidebar Footer with Logout Button */}
+        <div className="p-4 border-t border-[#E7E0D8] bg-[#FAF8F5] space-y-3">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out Console</span>
+          </button>
+          <div className="text-[11px] text-[#78716C] text-center">
+            <p className="font-semibold text-[#1C1917]">Shubh Mangalam Admin</p>
+            <p>Phase 3 Security Active</p>
           </div>
         </div>
       </aside>
@@ -88,13 +105,20 @@ export const AdminLayout: React.FC = () => {
             </button>
             <div className="flex items-center space-x-3 pl-4 border-l border-[#E7E0D8]">
               <div className="w-8 h-8 rounded-full bg-secondary text-white font-bold flex items-center justify-center text-xs">
-                AD
+                {admin?.name ? admin.name.slice(0, 2).toUpperCase() : 'AD'}
               </div>
               <div>
-                <p className="text-xs font-bold text-[#1C1917]">Administrator</p>
-                <p className="text-[10px] text-[#78716C]">Super Admin</p>
+                <p className="text-xs font-bold text-[#1C1917]">{admin?.name || 'Administrator'}</p>
+                <p className="text-[10px] text-[#78716C]">{admin?.email || 'Super Admin'}</p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition border border-transparent hover:border-red-200 ml-2"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 

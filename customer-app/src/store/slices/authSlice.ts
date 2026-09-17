@@ -7,8 +7,10 @@ export interface UserProfile {
   name: string;
   email: string;
   phone: string;
-  role: 'CUSTOMER' | 'OWNER' | 'ADMIN';
-  isEmailVerified: boolean;
+  role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' | 'OWNER';
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  isEmailVerified?: boolean;
   avatar: string | null;
 }
 
@@ -18,7 +20,7 @@ interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-  isResolved: boolean; // Indicates if storage token check is completed
+  isResolved: boolean;
 }
 
 const initialState: AuthState = {
@@ -35,34 +37,37 @@ export const loadStoredToken = createAsyncThunk(
   'auth/loadStoredToken',
   async (_, { rejectWithValue }) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await SecureStore.getItemAsync('accessToken');
       if (!token) {
         return { token: null, user: null };
       }
 
-      // Fetch user profile using the token (which is auto-injected by axios client interceptor)
-      const response = await apiClient.get('/users/profile');
-      const user: UserProfile = response.data.data;
+      const response = await apiClient.get('/auth/me');
+      const user: UserProfile = response.data.data.user;
 
       return { token, user };
     } catch (error: any) {
-      // If token expired or server unreachable, clear storage and reject
-      await SecureStore.deleteItemAsync('token');
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
       return rejectWithValue(error.message || 'Session expired.');
     }
   }
 );
 
-// Async Thunk: Log user in
+// Async Thunk: Log customer in
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await apiClient.post('/auth/login', credentials);
-      const { user, accessToken } = response.data.data;
+      const response = await apiClient.post('/auth/customer/login', credentials);
+      const { user, tokens } = response.data.data;
+      const accessToken = tokens.accessToken;
+      const refreshToken = tokens.refreshToken;
 
-      // Persist token in SecureStore
-      await SecureStore.setItemAsync('token', accessToken);
+      await SecureStore.setItemAsync('accessToken', accessToken);
+      if (refreshToken) {
+        await SecureStore.setItemAsync('refreshToken', refreshToken);
+      }
 
       return { user, token: accessToken };
     } catch (error: any) {
@@ -71,7 +76,7 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// Async Thunk: Register user (role toggle included in UI, but backend defaults to CUSTOMER initially)
+// Async Thunk: Register customer
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (
@@ -79,10 +84,38 @@ export const registerUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await apiClient.post('/auth/register', userData);
-      return response.data.message || 'Registration successful. OTP has been sent.';
+      const response = await apiClient.post('/auth/customer/register', userData);
+      return response.data.message || 'Registration successful. Verification link sent.';
     } catch (error: any) {
       return rejectWithValue(error.message || 'Registration failed.');
+    }
+  }
+);
+
+// Async Thunk: Google Login for customer
+export const googleLogin = createAsyncThunk(
+  'auth/googleLogin',
+  async (
+    payload: { idToken: string; email?: string; name?: string; avatar?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await apiClient.post('/auth/google', {
+        ...payload,
+        role: 'CUSTOMER',
+      });
+      const { user, tokens } = response.data.data;
+      const accessToken = tokens.accessToken;
+      const refreshToken = tokens.refreshToken;
+
+      await SecureStore.setItemAsync('accessToken', accessToken);
+      if (refreshToken) {
+        await SecureStore.setItemAsync('refreshToken', refreshToken);
+      }
+
+      return { user, token: accessToken };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Google sign-in failed.');
     }
   }
 );
@@ -92,9 +125,16 @@ export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async (_, { rejectWithValue }) => {
     try {
-      await SecureStore.deleteItemAsync('token');
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      if (refreshToken) {
+        await apiClient.post('/auth/logout', { refreshToken }).catch(() => {});
+      }
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
       return null;
     } catch (error: any) {
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
       return rejectWithValue(error.message || 'Logout failed.');
     }
   }
@@ -129,7 +169,7 @@ const authSlice = createSlice({
       state.token = null;
       state.user = null;
       state.isAuthenticated = false;
-      state.isResolved = true; // Still resolved because startup check finished
+      state.isResolved = true;
       state.error = action.payload as string;
     });
 
@@ -146,6 +186,23 @@ const authSlice = createSlice({
       state.error = null;
     });
     builder.addCase(loginUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
+    // googleLogin
+    builder.addCase(googleLogin.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(googleLogin.fulfilled, (state, action) => {
+      state.loading = false;
+      state.token = action.payload.token;
+      state.user = action.payload.user;
+      state.isAuthenticated = true;
+      state.error = null;
+    });
+    builder.addCase(googleLogin.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });

@@ -200,6 +200,13 @@ model User {
   couponUsages   CouponUsage[]
   auditLogs      AuditLog[]
 
+  // Authentication, Session & Security Relations (Phase 3)
+  sessions            UserSession[]
+  oauthAccounts       OAuthAccount[]
+  emailTokens         EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+  adminMfa            AdminMfa?
+
   // Legacy GoVehicle Relations (Preserved for compatibility)
   vehicles         Vehicle[]
   requestsCreated  TransportRequest[] @relation("CustomerRequests")
@@ -222,6 +229,88 @@ model Otp {
 
   @@index([email])
   @@map("otps")
+}
+
+// =========================================================================
+// 8.1 AUTHENTICATION & SECURITY DOMAIN (Phase 3)
+// =========================================================================
+
+model UserSession {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  deviceId         String?
+  deviceType       String?
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  lastUsedAt       DateTime  @default(now())
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@map("user_sessions")
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String
+  provider          String // e.g. "GOOGLE"
+  providerAccountId String // Google sub ID
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model AdminMfa {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  secretEncrypted String
+  enabled         Boolean   @default(false)
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_mfa")
 }
 
 // =========================================================================

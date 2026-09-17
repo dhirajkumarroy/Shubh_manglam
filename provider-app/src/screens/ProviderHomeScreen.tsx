@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
 import colors from '../theme/colors';
+import VendorStatusBanner from '../components/VendorStatusBanner';
 
 export interface MarketplaceCategory {
   id: string;
@@ -12,11 +13,13 @@ export interface MarketplaceCategory {
 interface ProviderHomeScreenProps {
   categories?: MarketplaceCategory[];
   isLoading?: boolean;
+  vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 }
 
 export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
   categories = [],
   isLoading = false,
+  vendorStatus = 'PENDING',
 }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -29,9 +32,14 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
             <Text style={styles.subGreeting}>Service Provider Dashboard</Text>
           </View>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Verified Vendor</Text>
+            <Text style={styles.badgeText}>
+              {vendorStatus === 'APPROVED' ? 'Verified Partner' : 'Pending Approval'}
+            </Text>
           </View>
         </View>
+
+        {/* Approval Lifecycle Banner */}
+        <VendorStatusBanner status={vendorStatus} />
 
         {/* Welcome Card */}
         <View style={styles.heroCard}>

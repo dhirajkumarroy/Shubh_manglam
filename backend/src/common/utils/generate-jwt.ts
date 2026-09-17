@@ -3,39 +3,58 @@ import { env } from '../../config/env';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
- * Signs a short-lived JSON Web Token for API request authorization.
- * @param payload Strong-typed payload containing user identity.
+ * Signs a short-lived JSON Web Token for API request authorization (approx 10-15m).
+ * Payload contains only minimal claims: sub (userId), role, sessionId.
  */
 export const generateAccessToken = (payload: JwtPayload): string => {
-  return jwt.sign(payload, env.JWT_SECRET, {
+  const userId = payload.sub || payload.userId || '';
+  const cleanPayload: JwtPayload = {
+    sub: userId,
+    userId: userId,
+    role: payload.role,
+    ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
+  };
+
+  return jwt.sign(cleanPayload, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN as any,
   });
 };
 
 /**
- * Signs a long-lived JSON Web Token for refreshing request access.
- * @param payload Strong-typed payload containing user identity.
+ * Signs a long-lived JSON Web Token for session refresh (7-30d).
  */
 export const generateRefreshToken = (payload: JwtPayload): string => {
-  return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
+  const userId = payload.sub || payload.userId || '';
+  const cleanPayload: JwtPayload = {
+    sub: userId,
+    userId: userId,
+    role: payload.role,
+    ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
+  };
+
+  return jwt.sign(cleanPayload, env.JWT_REFRESH_SECRET, {
     expiresIn: env.JWT_REFRESH_EXPIRES_IN as any,
   });
 };
 
 /**
  * Verifies and decodes an incoming Access Token.
- * @param token Raw access JWT from headers.
- * @throws An error if token is expired or signature is invalid.
  */
 export const verifyAccessToken = (token: string): JwtPayload => {
-  return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+  const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+  if (!decoded.userId && decoded.sub) {
+    decoded.userId = decoded.sub;
+  }
+  return decoded;
 };
 
 /**
  * Verifies and decodes an incoming Refresh Token.
- * @param token Raw refresh JWT from cookies.
- * @throws An error if token is expired or signature is invalid.
  */
 export const verifyRefreshToken = (token: string): JwtPayload => {
-  return jwt.verify(token, env.JWT_REFRESH_SECRET) as JwtPayload;
+  const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as JwtPayload;
+  if (!decoded.userId && decoded.sub) {
+    decoded.userId = decoded.sub;
+  }
+  return decoded;
 };

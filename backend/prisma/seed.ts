@@ -217,6 +217,236 @@ async function main() {
   }
   console.log(`Seeded ${mappingCount} EventType ↔ Category Mappings.`);
 
+  // 4. Seed Development Demo Accounts
+  console.log('Seeding Development Demo Accounts...');
+  const bcrypt = await import('bcrypt');
+  // Simple password for fast mobile & web development testing
+  const easyPassword = 'password';
+  const hashedPassword = await bcrypt.hash(easyPassword, 10);
+
+  // 4.1 Dhiraj Kumar Customer Account
+  const dhiraj = await prisma.user.upsert({
+    where: { email: 'dhiraj@gmail.com' },
+    update: {
+      name: 'Dhiraj Kumar',
+      phone: '+919811111111',
+      passwordHash: hashedPassword,
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+    create: {
+      name: 'Dhiraj Kumar',
+      email: 'dhiraj@gmail.com',
+      phone: '+919811111111',
+      passwordHash: hashedPassword,
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+  console.log('Seeded easy customer account:', dhiraj.email, '(password: password)');
+
+  // 4.2 Demo Customer
+  const customerEmail = 'customer.demo@shubhmangalam.local';
+  const customer = await prisma.user.upsert({
+    where: { email: customerEmail },
+    update: {
+      name: 'Demo Customer',
+      phone: '+919800000001',
+      passwordHash: hashedPassword,
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+    create: {
+      name: 'Demo Customer',
+      email: customerEmail,
+      phone: '+919800000001',
+      passwordHash: hashedPassword,
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+  console.log('Seeded demo customer:', customer.email, '(password: password)');
+
+  // 4.3 Easy Provider Account (provider@gmail.com)
+  const easyProvider = await prisma.user.upsert({
+    where: { email: 'provider@gmail.com' },
+    update: {
+      name: 'Dhiraj Events & Decorations',
+      phone: '+919822222222',
+      passwordHash: hashedPassword,
+      role: 'VENDOR',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+    create: {
+      name: 'Dhiraj Events & Decorations',
+      email: 'provider@gmail.com',
+      phone: '+919822222222',
+      passwordHash: hashedPassword,
+      role: 'VENDOR',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+
+  await prisma.vendor.upsert({
+    where: { userId: easyProvider.id },
+    update: {
+      businessName: 'Dhiraj Events & Tent House',
+      slug: 'dhiraj-events',
+      phone: '+919822222222',
+      email: 'provider@gmail.com',
+      addressLine1: 'Main Market, Model Town',
+      city: 'Panipat',
+      state: 'Haryana',
+      pincode: '132103',
+      latitude: 29.3909,
+      longitude: 76.9635,
+      status: 'APPROVED',
+      isVerified: true,
+      isActive: true,
+    },
+    create: {
+      userId: easyProvider.id,
+      businessName: 'Dhiraj Events & Tent House',
+      slug: 'dhiraj-events',
+      phone: '+919822222222',
+      email: 'provider@gmail.com',
+      addressLine1: 'Main Market, Model Town',
+      city: 'Panipat',
+      state: 'Haryana',
+      pincode: '132103',
+      latitude: 29.3909,
+      longitude: 76.9635,
+      status: 'APPROVED',
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  console.log('Seeded easy provider:', easyProvider.email, '(password: password)');
+
+  // 4.4 Demo Provider (Approved Vendor for provider testing)
+  const providerEmail = 'provider.demo@shubhmangalam.local';
+  const provider = await prisma.user.upsert({
+    where: { email: providerEmail },
+    update: {
+      name: 'Royal Events (Demo Provider)',
+      phone: '+919800000002',
+      passwordHash: hashedPassword,
+      role: 'VENDOR',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+    create: {
+      name: 'Royal Events (Demo Provider)',
+      email: providerEmail,
+      phone: '+919800000002',
+      passwordHash: hashedPassword,
+      role: 'VENDOR',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+
+  await prisma.vendor.upsert({
+    where: { userId: provider.id },
+    update: {
+      businessName: 'Royal Events & Celebrations',
+      slug: 'royal-events-demo',
+      phone: '+919800000002',
+      email: providerEmail,
+      addressLine1: 'GT Road, Near City Mall',
+      city: 'Panipat',
+      state: 'Haryana',
+      pincode: '132103',
+      latitude: 29.3909,
+      longitude: 76.9635,
+      status: 'APPROVED',
+      isVerified: true,
+      isActive: true,
+    },
+    create: {
+      userId: provider.id,
+      businessName: 'Royal Events & Celebrations',
+      slug: 'royal-events-demo',
+      phone: '+919800000002',
+      email: providerEmail,
+      addressLine1: 'GT Road, Near City Mall',
+      city: 'Panipat',
+      state: 'Haryana',
+      pincode: '132103',
+      latitude: 29.3909,
+      longitude: 76.9635,
+      status: 'APPROVED',
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  console.log('Seeded demo provider (APPROVED):', provider.email, '(password: password)');
+
+  // 4.5 Easy Admin Account (admin@gmail.com)
+  const easyAdmin = await prisma.user.upsert({
+    where: { email: 'admin@gmail.com' },
+    update: {
+      name: 'System Admin',
+      phone: '+919833333333',
+      passwordHash: hashedPassword,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+    create: {
+      name: 'System Admin',
+      email: 'admin@gmail.com',
+      phone: '+919833333333',
+      passwordHash: hashedPassword,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+  console.log('Seeded easy admin:', easyAdmin.email, '(password: password)');
+
+  // 4.6 Demo Administrator
+  const adminEmail = 'admin.demo@shubhmangalam.local';
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      name: 'Marketplace Administrator',
+      phone: '+919800000003',
+      passwordHash: hashedPassword,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+    create: {
+      name: 'Marketplace Administrator',
+      email: adminEmail,
+      phone: '+919800000003',
+      passwordHash: hashedPassword,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+  console.log('Seeded demo admin:', admin.email, '(password: password)');
+
   console.log('--- Seed Completed Successfully ---');
 }
 

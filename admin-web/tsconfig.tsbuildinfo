@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/layouts/adminlayout.tsx","./src/pages/dashboardpage.tsx"],"version":"5.6.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/protectedroute.tsx","./src/layouts/adminlayout.tsx","./src/pages/dashboardpage.tsx","./src/pages/loginpage.tsx","./src/services/auth.service.ts","./src/store/authcontext.tsx"],"version":"5.6.3"}

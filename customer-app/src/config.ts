@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 
-// Local IP address of host computer (to allow physical devices and emulators to connect)
-const DEV_API_URL = 'http://192.168.0.104:8000/api/v1';
+// Host machine LAN IP address detected from Expo (10.44.62.6)
+// This allows physical devices (iPhone / Android) and emulators to reach the backend
+const DEV_API_URL = 'http://10.44.62.6:8000/api/v1';
 
 export const Config = {
   API_URL: DEV_API_URL,

@@ -1,6 +1,8 @@
 export type RootStackParamList = {
   ProviderSplash: undefined;
-  ProviderHome: undefined;
+  ProviderLogin: undefined;
+  ProviderRegister: undefined;
+  ProviderHome: { vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' } | undefined;
 };
 
 export interface ServiceCategory {

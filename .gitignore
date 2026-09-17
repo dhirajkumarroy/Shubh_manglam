@@ -22,5 +22,7 @@ build/
 # OS Files
 .DS_Store
 **/.DS_Store
-Thumbs.db
+# Build info / cache
+*.tsbuildinfo
+**/*.tsbuildinfo
 

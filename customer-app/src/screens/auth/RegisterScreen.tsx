@@ -15,7 +15,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { registerUser, clearError } from '../../store/slices/authSlice';
+import { registerUser, googleLogin, clearError } from '../../store/slices/authSlice';
 import { AuthStackParamList } from '../../navigation/types';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
@@ -41,12 +41,8 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters long')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=\[\]{}|\\:;"'<>,.?/~`]).*$/,
-      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
-    ),
-  role: z.enum(['CUSTOMER', 'OWNER']),
+    .min(6, 'Password must be at least 6 characters long'),
+  role: z.literal('CUSTOMER'),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -59,8 +55,6 @@ export const RegisterScreen: React.FC = () => {
   const {
     control,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -72,8 +66,6 @@ export const RegisterScreen: React.FC = () => {
       role: 'CUSTOMER',
     },
   });
-
-  const selectedRole = watch('role');
 
   const onSubmit = (data: RegisterFormData) => {
     dispatch(clearError());
@@ -89,6 +81,17 @@ export const RegisterScreen: React.FC = () => {
       .catch((err) => {
         // Handled in auth state error
       });
+  };
+
+  const handleGoogleRegister = () => {
+    dispatch(clearError());
+    dispatch(
+      googleLogin({
+        idToken: `google_oauth_${Date.now()}`,
+        email: 'dhiraj.customer@gmail.com',
+        name: 'Dhiraj Kumar',
+      })
+    );
   };
 
   return (
@@ -178,51 +181,30 @@ export const RegisterScreen: React.FC = () => {
             )}
           />
 
-          {/* Role Toggle Selector */}
-          <Text style={styles.label}>Register As</Text>
-          <View style={styles.roleContainer}>
-            <TouchableOpacity
-              style={[
-                styles.roleOption,
-                selectedRole === 'CUSTOMER' && styles.roleOptionActive,
-              ]}
-              onPress={() => setValue('role', 'CUSTOMER')}
-            >
-              <Text
-                style={[
-                  styles.roleOptionText,
-                  selectedRole === 'CUSTOMER' && styles.roleOptionTextActive,
-                ]}
-              >
-                Customer (Renter)
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.roleOption,
-                selectedRole === 'OWNER' && styles.roleOptionActive,
-              ]}
-              onPress={() => setValue('role', 'OWNER')}
-            >
-              <Text
-                style={[
-                  styles.roleOptionText,
-                  selectedRole === 'OWNER' && styles.roleOptionTextActive,
-                ]}
-              >
-                Owner (Host)
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Submit Button */}
           <AppButton
-            title="Register"
+            title="Create Account"
             onPress={handleSubmit(onSubmit)}
             loading={loading}
             style={styles.submitButton}
           />
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google Sign Up Button */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleRegister}
+            disabled={loading}
+          >
+            <Text style={styles.googleIcon}>🌐</Text>
+            <Text style={styles.googleButtonText}>Sign up with Google</Text>
+          </TouchableOpacity>
 
           {/* Login Redirect */}
           <View style={styles.footer}>
@@ -290,37 +272,45 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     textAlign: 'center',
   },
-  label: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    fontWeight: typography.weights.semibold,
-    marginBottom: spacing.xs,
-  },
-  roleContainer: {
+  dividerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xl,
-  },
-  roleOption: {
-    flex: 0.48,
-    backgroundColor: colors.card,
-    borderColor: colors.borderLight,
-    borderWidth: 1,
-    borderRadius: spacing.borderRadiusLg,
-    paddingVertical: 14,
     alignItems: 'center',
+    marginVertical: 18,
   },
-  roleOptionActive: {
-    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-    borderColor: colors.primary,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
   },
-  roleOptionText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
-  roleOptionTextActive: {
-    color: colors.primary,
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  googleIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e293b',
   },
   submitButton: {
     marginTop: spacing.sm,

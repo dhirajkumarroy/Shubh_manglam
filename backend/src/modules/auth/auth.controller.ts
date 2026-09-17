@@ -1,15 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService, DeviceMetadata } from './auth.service';
 import {
-  registerSchema,
+  customerRegisterSchema,
+  providerRegisterSchema,
   loginSchema,
+  adminLoginSchema,
   verifyEmailSchema,
+  resendVerificationSchema,
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
   logoutSchema,
+  googleAuthSchema,
+  adminMfaVerifySchema,
+  adminMfaDisableSchema,
 } from './auth.validation';
 import { ResponseDto } from '../../common/dto/api-response.dto';
+import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
+import { UnauthorizedError } from '../../common/utils/app-error';
 
 export class AuthController {
   private authService: AuthService;
@@ -18,136 +27,286 @@ export class AuthController {
     this.authService = new AuthService();
   }
 
-  /**
-   * HTTP handler to register a new user account.
-   * POST /api/v1/auth/register
-   */
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const validatedBody = registerSchema.parse(req.body);
-      await this.authService.register(validatedBody);
+  private getDeviceMeta(req: Request): DeviceMetadata {
+    return {
+      deviceId: req.headers['x-device-id'] as string | undefined,
+      deviceType: req.headers['x-device-type'] as string | undefined,
+      userAgent: req.headers['user-agent'],
+      ipAddress:
+        (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
+        req.socket.remoteAddress,
+    };
+  }
 
-      res.status(201).json(
-        ResponseDto.success('Registration successful. Verification OTP sent.')
-      );
+  // =========================================================================
+  // Customer Handlers
+  // =========================================================================
+
+  customerRegister = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = customerRegisterSchema.parse(req.body);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.registerCustomer(validatedBody, meta);
+
+      res.status(201).json(ResponseDto.success('Customer registered successfully. Verification link sent.', result));
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * HTTP handler to log in user credentials.
-   * POST /api/v1/auth/login
-   */
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  customerLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const validatedBody = loginSchema.parse(req.body);
-      const result = await this.authService.login(validatedBody);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.loginCustomer(validatedBody, meta);
 
-      res.status(200).json(
-        ResponseDto.success('Login successful', {
-          user: {
-            id: result.user.id,
-            name: result.user.name,
-            email: result.user.email,
-            phone: result.user.phone,
-            role: result.user.role,
-            avatar: result.user.avatar,
-          },
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
-        })
-      );
+      res.status(200).json(ResponseDto.success('Login successful.', result));
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * HTTP handler to verify user's email address.
-   * POST /api/v1/auth/verify-email
-   */
-  verifyEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  // =========================================================================
+  // Provider Handlers
+  // =========================================================================
+
+  providerRegister = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const validatedBody = verifyEmailSchema.parse(req.body);
-      await this.authService.verifyEmail(validatedBody);
+      const validatedBody = providerRegisterSchema.parse(req.body);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.registerProvider(validatedBody, meta);
 
-      res.status(200).json(
-        ResponseDto.success('Email verified successfully.')
+      res.status(201).json(
+        ResponseDto.success(
+          'Provider registered successfully. Profile is PENDING admin approval.',
+          result
+        )
       );
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * HTTP handler to refresh session tokens.
-   * POST /api/v1/auth/refresh-token
-   */
+  providerLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = loginSchema.parse(req.body);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.loginProvider(validatedBody, meta);
+
+      res.status(200).json(ResponseDto.success('Provider login successful.', result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Admin Handlers
+  // =========================================================================
+
+  adminLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = adminLoginSchema.parse(req.body);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.loginAdmin(validatedBody, meta);
+
+      res.status(200).json(ResponseDto.success('Admin login successful.', result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Token Refresh & Session Management
+  // =========================================================================
+
   refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const validatedBody = refreshTokenSchema.parse(req.body);
-      const result = await this.authService.refreshToken(validatedBody);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.refreshToken(validatedBody, meta);
 
-      res.status(200).json(
-        ResponseDto.success('Tokens refreshed successfully.', result)
-      );
+      res.status(200).json(ResponseDto.success('Tokens refreshed successfully.', result));
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * HTTP handler to initiate password reset request.
-   * POST /api/v1/auth/forgot-password
-   */
-  forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const validatedBody = forgotPasswordSchema.parse(req.body);
-      await this.authService.forgotPassword(validatedBody);
-
-      res.status(200).json(
-        ResponseDto.success('Password reset OTP sent to your email address.')
-      );
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  /**
-   * HTTP handler to execute password reset using OTP.
-   * POST /api/v1/auth/reset-password
-   */
-  resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const validatedBody = resetPasswordSchema.parse(req.body);
-      await this.authService.resetPassword(validatedBody);
-
-      res.status(200).json(
-        ResponseDto.success('Password has been reset successfully.')
-      );
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  /**
-   * HTTP handler to log out user.
-   * POST /api/v1/auth/logout
-   */
   logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const validatedBody = logoutSchema.parse(req.body);
-      await this.authService.logout(validatedBody);
+      await this.authService.logout(validatedBody.refreshToken);
 
-      res.status(200).json(
-        ResponseDto.success('Logged out successfully.')
-      );
+      res.status(200).json(ResponseDto.success('Logged out successfully.'));
     } catch (error) {
       next(error);
     }
   };
+
+  logoutAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId || req.user?.sub;
+      if (!userId) {
+        throw new UnauthorizedError('Authentication required.');
+      }
+
+      await this.authService.logoutAll(userId);
+      res.status(200).json(ResponseDto.success('All sessions revoked successfully.'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  me = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId || req.user?.sub;
+      if (!userId) {
+        throw new UnauthorizedError('Authentication required.');
+      }
+
+      const result = await this.authService.getCurrentUser(userId);
+      res.status(200).json(ResponseDto.success('User profile fetched successfully.', result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Email Verification
+  // =========================================================================
+
+  verifyEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = verifyEmailSchema.parse(req.body);
+      const result = await this.authService.verifyEmail(validatedBody);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resendVerification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = resendVerificationSchema.parse(req.body);
+      const result = await this.authService.resendVerificationEmail(validatedBody);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Password Management
+  // =========================================================================
+
+  forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = forgotPasswordSchema.parse(req.body);
+      const result = await this.authService.forgotPassword(validatedBody);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = resetPasswordSchema.parse(req.body);
+      const result = await this.authService.resetPassword(validatedBody);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId || req.user?.sub;
+      if (!userId) {
+        throw new UnauthorizedError('Authentication required.');
+      }
+
+      const validatedBody = changePasswordSchema.parse(req.body);
+      const result = await this.authService.changePassword(userId, validatedBody);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Google OAuth
+  // =========================================================================
+
+  googleAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const validatedBody = googleAuthSchema.parse(req.body);
+      const meta = this.getDeviceMeta(req);
+      const result = await this.authService.googleAuth(validatedBody, meta);
+
+      res.status(200).json(ResponseDto.success('Google authentication successful.', result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Admin MFA
+  // =========================================================================
+
+  setupAdminMfa = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId || req.user?.sub;
+      if (!userId) {
+        throw new UnauthorizedError('Authentication required.');
+      }
+
+      const result = await this.authService.setupAdminMfa(userId);
+      res.status(200).json(ResponseDto.success('MFA initialized. Scan the QR code or enter the key.', result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyAdminMfa = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId || req.user?.sub;
+      if (!userId) {
+        throw new UnauthorizedError('Authentication required.');
+      }
+
+      const validatedBody = adminMfaVerifySchema.parse(req.body);
+      const result = await this.authService.verifyAdminMfa(userId, validatedBody.code);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  disableAdminMfa = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId || req.user?.sub;
+      if (!userId) {
+        throw new UnauthorizedError('Authentication required.');
+      }
+
+      const validatedBody = adminMfaDisableSchema.parse(req.body);
+      const result = await this.authService.disableAdminMfa(userId, validatedBody.code, validatedBody.password);
+
+      res.status(200).json(ResponseDto.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Backward compatibility aliases
+  register = this.customerRegister;
+  login = this.customerLogin;
 }
 
 export default AuthController;
-

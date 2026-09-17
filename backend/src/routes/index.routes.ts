@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import { ResponseDto } from '../common/dto/api-response.dto';
+import authRouter from '../modules/auth/auth.routes';
+import userRouter from '../modules/users/user.routes';
+import notificationRouter from '../modules/notifications/notification.routes';
+import adminRouter from '../modules/admin/admin.routes';
 
 const router = Router();
 
@@ -33,22 +37,10 @@ router.get('/health', (_req, res) => {
   );
 });
 
-import authRouter from '../modules/auth/auth.routes';
-import userRouter from '../modules/users/user.routes';
-import vehicleRouter from '../modules/vehicles/vehicle.routes';
-import notificationRouter from '../modules/notifications/notification.routes';
-import adminRouter from '../modules/admin/admin.routes';
-import paymentRouter from '../modules/payments/payment.routes';
-import requestRouter from '../modules/requests/request.routes';
-
+// Shubh Mangalam Core Routes
 router.use('/auth', authRouter);
 router.use('/users', userRouter);
-router.use('/vehicles', vehicleRouter);
-router.use('/bookings', requestRouter); // Map bookings to requests for backward compatibility
 router.use('/notifications', notificationRouter);
 router.use('/admin', adminRouter);
-router.use('/payments', paymentRouter);
-router.use('/requests', requestRouter);
 
 export default router;
-

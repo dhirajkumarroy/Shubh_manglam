@@ -1,20 +1,22 @@
-import { Prisma, User, Otp } from '@prisma/client';
+import { Prisma, User, Vendor, UserSession, AdminMfa } from '@prisma/client';
 import prisma from '../../config/database';
 
 export class AuthRepository {
   /**
    * Find a user by their unique email address.
-   * @param email Email address of the user.
    */
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<(User & { vendorProfile?: Vendor | null; adminMfa?: AdminMfa | null }) | null> {
     return prisma.user.findUnique({
       where: { email },
+      include: {
+        vendorProfile: true,
+        adminMfa: true,
+      },
     });
   }
 
   /**
    * Find a user by their unique phone number.
-   * @param phone Phone number of the user.
    */
   async findByPhone(phone: string): Promise<User | null> {
     return prisma.user.findUnique({
@@ -23,27 +25,36 @@ export class AuthRepository {
   }
 
   /**
-   * Creates a User and an associated OTP code atomically inside a database transaction.
-   * @param userData Input data for the user profile creation.
-   * @param otpCode The random OTP code generated.
-   * @param otpExpiresAt Expiration date for the OTP.
+   * Find a user by their database ID.
    */
-  async createUserWithOtp(
+  async findById(id: string): Promise<(User & { vendorProfile?: Vendor | null; adminMfa?: AdminMfa | null }) | null> {
+    return prisma.user.findUnique({
+      where: { id },
+      include: {
+        vendorProfile: true,
+        adminMfa: true,
+      },
+    });
+  }
+
+  /**
+   * Creates a customer user atomically along with an email verification token.
+   */
+  async createCustomerUser(
     userData: Prisma.UserCreateInput,
-    otpCode: string,
-    otpExpiresAt: Date
+    tokenHash: string,
+    expiresAt: Date
   ): Promise<User> {
     return prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: userData,
       });
 
-      await tx.otp.create({
+      await tx.emailVerificationToken.create({
         data: {
-          email: user.email,
-          code: otpCode,
-          type: 'EMAIL_VERIFICATION',
-          expiresAt: otpExpiresAt,
+          userId: user.id,
+          tokenHash,
+          expiresAt,
         },
       });
 
@@ -52,85 +63,319 @@ export class AuthRepository {
   }
 
   /**
-   * Find an OTP record by email, code, and type.
+   * Creates a provider user (role: VENDOR) and vendor profile (status: PENDING) atomically.
    */
-  async findOtp(email: string, code: string, type: string): Promise<Otp | null> {
-    return prisma.otp.findFirst({
-      where: {
-        email,
-        code,
-        type,
+  async createProviderUser(
+    userData: Prisma.UserCreateInput,
+    vendorData: {
+      businessName: string;
+      slug: string;
+      phone: string;
+      email: string;
+      city?: string;
+    },
+    tokenHash: string,
+    expiresAt: Date
+  ): Promise<User & { vendorProfile: Vendor | null }> {
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: userData,
+      });
+
+      const vendor = await tx.vendor.create({
+        data: {
+          userId: user.id,
+          businessName: vendorData.businessName,
+          slug: vendorData.slug,
+          phone: vendorData.phone,
+          email: vendorData.email,
+          addressLine1: 'Main Market',
+          city: vendorData.city || 'Panipat',
+          state: 'Haryana',
+          pincode: '132103',
+          latitude: 29.3909,
+          longitude: 76.9635,
+          status: 'PENDING',
+          isActive: false,
+          isVerified: false,
+        },
+      });
+
+      await tx.emailVerificationToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+
+      return { ...user, vendorProfile: vendor };
+    });
+  }
+
+  // =========================================================================
+  // Session Management (Refresh Token Rotation & Revocation)
+  // =========================================================================
+
+  async createSession(data: {
+    userId: string;
+    refreshTokenHash: string;
+    expiresAt: Date;
+    deviceId?: string;
+    deviceType?: string;
+    userAgent?: string;
+    ipAddress?: string;
+  }): Promise<UserSession> {
+    return prisma.userSession.create({
+      data,
+    });
+  }
+
+  async findSessionByHash(refreshTokenHash: string): Promise<(UserSession & { user: User & { vendorProfile?: Vendor | null } }) | null> {
+    return prisma.userSession.findFirst({
+      where: { refreshTokenHash },
+      include: {
+        user: {
+          include: {
+            vendorProfile: true,
+          },
+        },
       },
     });
   }
 
-  /**
-   * Updates user email verification status and deletes the verified OTP record atomically in a transaction.
-   */
-  async verifyUserEmailAndDeleteOtp(email: string, otpId: string): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { email },
-        data: { isEmailVerified: true },
-      });
-
-      await tx.otp.delete({
-        where: { id: otpId },
-      });
-    });
-  }
-
-  /**
-   * Find a user by their unique database ID.
-   * @param id Database ID of the user.
-   */
-  async findById(id: string): Promise<User | null> {
-    return prisma.user.findUnique({
-      where: { id },
-    });
-  }
-
-  /**
-   * Creates a new OTP record.
-   */
-  async createOtp(email: string, code: string, type: string, expiresAt: Date): Promise<Otp> {
-    return prisma.otp.create({
+  async rotateSession(
+    sessionId: string,
+    newRefreshTokenHash: string,
+    newExpiresAt: Date
+  ): Promise<UserSession> {
+    return prisma.userSession.update({
+      where: { id: sessionId },
       data: {
-        email,
-        code,
-        type,
+        refreshTokenHash: newRefreshTokenHash,
+        expiresAt: newExpiresAt,
+        lastUsedAt: new Date(),
+      },
+    });
+  }
+
+  async revokeSession(sessionId: string): Promise<void> {
+    await prisma.userSession.update({
+      where: { id: sessionId },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async revokeAllUserSessions(userId: string): Promise<void> {
+    await prisma.userSession.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  // =========================================================================
+  // Email Verification Tokens
+  // =========================================================================
+
+  async createEmailVerificationToken(userId: string, tokenHash: string, expiresAt: Date) {
+    return prisma.emailVerificationToken.create({
+      data: {
+        userId,
+        tokenHash,
         expiresAt,
       },
     });
   }
 
-  /**
-   * Deletes all OTP records of a certain type for an email.
-   */
-  async deleteOtps(email: string, type: string): Promise<void> {
-    await prisma.otp.deleteMany({
-      where: { email, type },
+  async findEmailVerificationToken(tokenHash: string) {
+    return prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
     });
   }
 
-  /**
-   * Updates user password and deletes the verified OTP record atomically in a transaction.
-   */
-  async resetUserPasswordAndDeleteOtps(email: string, passwordHash: string, otpId: string): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { email },
-        data: { passwordHash },
+  async consumeEmailVerificationToken(tokenId: string, userId: string): Promise<void> {
+    await prisma.$transaction([
+      prisma.emailVerificationToken.update({
+        where: { id: tokenId },
+        data: { usedAt: new Date() },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { emailVerified: true },
+      }),
+    ]);
+  }
+
+  // =========================================================================
+  // Password Reset Tokens
+  // =========================================================================
+
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date) {
+    return prisma.passwordResetToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+      },
+    });
+  }
+
+  async findPasswordResetToken(tokenHash: string) {
+    return prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+  }
+
+  async consumePasswordResetToken(
+    tokenId: string,
+    userId: string,
+    newPasswordHash: string
+  ): Promise<void> {
+    await prisma.$transaction([
+      prisma.passwordResetToken.update({
+        where: { id: tokenId },
+        data: { usedAt: new Date() },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: newPasswordHash },
+      }),
+      // Revoke all active sessions on password reset for security
+      prisma.userSession.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
+  async updateUserPassword(userId: string, newPasswordHash: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+  }
+
+  // =========================================================================
+  // Admin MFA Management
+  // =========================================================================
+
+  async upsertAdminMfa(userId: string, secretEncrypted: string) {
+    return prisma.adminMfa.upsert({
+      where: { userId },
+      update: {
+        secretEncrypted,
+        enabled: false,
+        verifiedAt: null,
+      },
+      create: {
+        userId,
+        secretEncrypted,
+        enabled: false,
+      },
+    });
+  }
+
+  async enableAdminMfa(userId: string) {
+    return prisma.adminMfa.update({
+      where: { userId },
+      data: {
+        enabled: true,
+        verifiedAt: new Date(),
+      },
+    });
+  }
+
+  async disableAdminMfa(userId: string) {
+    return prisma.adminMfa.update({
+      where: { userId },
+      data: {
+        enabled: false,
+        verifiedAt: null,
+      },
+    });
+  }
+
+  // =========================================================================
+  // OAuth Account Linking
+  // =========================================================================
+
+  async findOAuthAccount(provider: string, providerAccountId: string) {
+    return prisma.oAuthAccount.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId,
+        },
+      },
+      include: {
+        user: {
+          include: {
+            vendorProfile: true,
+          },
+        },
+      },
+    });
+  }
+
+  async createOAuthUser(
+    userData: Prisma.UserCreateInput,
+    provider: string,
+    providerAccountId: string,
+    vendorData?: { businessName: string; slug: string; phone: string; email: string }
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          ...userData,
+          emailVerified: true,
+        },
       });
 
-      await tx.otp.delete({
-        where: { id: otpId },
+      await tx.oAuthAccount.create({
+        data: {
+          userId: user.id,
+          provider,
+          providerAccountId,
+        },
       });
+
+      let vendorProfile = null;
+      if (vendorData && user.role === 'VENDOR') {
+        vendorProfile = await tx.vendor.create({
+          data: {
+            userId: user.id,
+            businessName: vendorData.businessName,
+            slug: vendorData.slug,
+            phone: vendorData.phone,
+            email: vendorData.email,
+            addressLine1: 'Main Market',
+            city: 'Panipat',
+            state: 'Haryana',
+            pincode: '132103',
+            latitude: 29.3909,
+            longitude: 76.9635,
+            status: 'PENDING',
+            isActive: false,
+            isVerified: false,
+          },
+        });
+      }
+
+      return { ...user, vendorProfile };
+    });
+  }
+
+  async linkOAuthAccount(userId: string, provider: string, providerAccountId: string) {
+    return prisma.oAuthAccount.create({
+      data: {
+        userId,
+        provider,
+        providerAccountId,
+      },
     });
   }
 }
 
 export default AuthRepository;
-
-
-

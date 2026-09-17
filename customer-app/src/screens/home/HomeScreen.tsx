@@ -1,88 +1,100 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
-import { HomeStackParamList } from '../../navigation/types';
 import colors from '../../theme/colors';
 
-interface PurposeOption {
-  id: string;
-  title: string;
-  icon: string;
-  description: string;
-}
-
-const PURPOSE_OPTIONS: PurposeOption[] = [
-  { id: 'PERSONAL_TRAVEL', title: 'Personal Travel', icon: '🚗', description: 'Trips, visits, tourism' },
-  { id: 'MARKET_TRANSPORT', title: 'Market Transport', icon: '🏪', description: 'Travel to local markets' },
-  { id: 'GOODS_DELIVERY', title: 'Goods Delivery', icon: '📦', description: 'Deliver items, parcels' },
-  { id: 'HOUSE_SHIFTING', title: 'House Shifting', icon: '🚚', description: 'Move furniture & home' },
-  { id: 'WEDDING', title: 'Wedding / Event', icon: '💒', description: 'Catering, guests, ceremony' },
-  { id: 'AGRICULTURE', title: 'Agriculture', icon: '🌾', description: 'Farming seeds, harvest' },
-  { id: 'CONSTRUCTION', title: 'Construction', icon: '🏗️', description: 'Sand, bricks, cement' },
-  { id: 'EMERGENCY', title: 'Emergency', icon: '🚨', description: 'Urgent, hospital, quick transport' },
-  { id: 'OTHER', title: 'Other Needs', icon: '❓', description: 'Custom vehicle requests' },
+const CELEBRATION_CATEGORIES = [
+  { id: '1', title: 'Decoration', icon: '🌸', desc: 'Stage, flower & theme decor' },
+  { id: '2', title: 'Tent & Setup', icon: '🎪', desc: 'Canopies, seating & setups' },
+  { id: '3', title: 'Catering & Food', icon: '🍲', desc: 'Buffets, sweets & live stalls' },
+  { id: '4', title: 'DJ & Sound', icon: '🎶', desc: 'Sound systems & light setups' },
+  { id: '5', title: 'Photography', icon: '📸', desc: 'Pre-wedding, shoots & video' },
+  { id: '6', title: 'Makeup & Mehndi', icon: '💄', desc: 'Bridal artists & mehndi designers' },
 ];
 
 export const HomeScreen: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+  const navigation = useNavigation<any>();
   const { user, loading } = useAppSelector((state) => state.auth);
 
   const handleLogout = () => {
     dispatch(logoutUser());
   };
 
-  const handleSelectPurpose = (purposeId: string) => {
-    navigation.navigate('CreateRequest', { purpose: purposeId });
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Top Header Card */}
+        {/* Top Hero Banner */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View>
-              <Text style={styles.greeting}>Hello,</Text>
-              <Text style={styles.name}>{user?.name || 'User'}</Text>
+              <Text style={styles.greeting}>Welcome back,</Text>
+              <Text style={styles.name}>{user?.name || 'Customer'}</Text>
             </View>
-            {/* Owner Toggle Button */}
-            {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
-              <TouchableOpacity
-                style={styles.hostBadge}
-                onPress={() => navigation.navigate('OwnerDashboard')}
-              >
-                <Text style={styles.hostBadgeText}>Host Console ⇄</Text>
-              </TouchableOpacity>
-            )}
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>CUSTOMER</Text>
+            </View>
           </View>
-          <Text style={styles.subtext}>Describe your requirement & match with nearby drivers instantly.</Text>
+          <Text style={styles.subtext}>
+            Discover verified local vendors for your wedding, birthday, puja & celebrations.
+          </Text>
+
+          {/* Account Status Pill */}
+          <View style={styles.accountInfoPill}>
+            <Text style={styles.accountInfoDot}>🟢</Text>
+            <Text style={styles.accountInfoText}>
+              {user?.email} • Verified Account
+            </Text>
+          </View>
         </View>
 
-        {/* Section: Marketplace Needs */}
+        {/* Celebration Services Marketplace Preview */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What do you need today?</Text>
-          <Text style={styles.sectionSubtitle}>Select a purpose to request transport</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Celebration Services</Text>
+            <Text style={styles.sectionTag}>Shubh Mangalam</Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Browse curated vendors for all festive occasions & family events
+          </Text>
 
           <View style={styles.grid}>
-            {PURPOSE_OPTIONS.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.card}
-                onPress={() => handleSelectPurpose(item.id)}
-              >
+            {CELEBRATION_CATEGORIES.map((item) => (
+              <View key={item.id} style={styles.card}>
                 <Text style={styles.cardIcon}>{item.icon}</Text>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardDesc}>{item.description}</Text>
-              </TouchableOpacity>
+                <Text style={styles.cardDesc}>{item.desc}</Text>
+              </View>
             ))}
           </View>
         </View>
 
-        {/* Footer Actions */}
+        {/* Account Quick Settings */}
+        <View style={styles.quickSettingsSection}>
+          <TouchableOpacity
+            style={styles.profileNavButton}
+            onPress={() => navigation.navigate('ProfileTab')}
+          >
+            <Text style={styles.profileNavIcon}>👤</Text>
+            <View style={styles.profileNavTextWrap}>
+              <Text style={styles.profileNavTitle}>Account & Profile</Text>
+              <Text style={styles.profileNavSub}>Manage profile details, security & settings</Text>
+            </View>
+            <Text style={styles.profileNavArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer Logout Action */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.logoutButton}
@@ -92,7 +104,7 @@ export const HomeScreen: React.FC = () => {
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.logoutButtonText}>Log Out</Text>
+              <Text style={styles.logoutButtonText}>Log Out Account</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -111,64 +123,96 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 32,
+    paddingBottom: 28,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   greeting: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
   },
   name: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#ffffff',
+    marginTop: 2,
   },
-  hostBadge: {
-    backgroundColor: '#ffffff',
+  roleBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  hostBadgeText: {
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 12,
+  roleBadgeText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   subtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 4,
-    lineHeight: 20,
+    marginTop: 6,
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+  accountInfoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 14,
+  },
+  accountInfoDot: {
+    fontSize: 8,
+    marginRight: 6,
+  },
+  accountInfoText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '500',
   },
   section: {
     paddingHorizontal: 20,
     paddingTop: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
     color: colors.text,
   },
+  sectionTag: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
   sectionSubtitle: {
     fontSize: 13,
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: 4,
     marginBottom: 16,
   },
   grid: {
@@ -184,15 +228,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 16,
     marginBottom: 16,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
   },
   cardIcon: {
-    fontSize: 32,
-    marginBottom: 10,
+    fontSize: 30,
+    marginBottom: 8,
   },
   cardTitle: {
     fontSize: 14,
@@ -200,19 +244,53 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   cardDesc: {
-    fontSize: 10,
+    fontSize: 11,
     color: colors.textMuted,
     marginTop: 4,
-    lineHeight: 14,
+    lineHeight: 15,
+  },
+  quickSettingsSection: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  profileNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  profileNavIcon: {
+    fontSize: 24,
+    marginRight: 14,
+  },
+  profileNavTextWrap: {
+    flex: 1,
+  },
+  profileNavTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  profileNavSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  profileNavArrow: {
+    fontSize: 22,
+    color: colors.textMuted,
   },
   footer: {
-    paddingHorizontal: 24,
-    marginTop: 16,
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
   logoutButton: {
     backgroundColor: '#ef4444',
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   logoutButtonText: {

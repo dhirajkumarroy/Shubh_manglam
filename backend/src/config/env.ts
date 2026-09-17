@@ -49,6 +49,19 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().default('rzp_test_mockkeyid123'),
   RAZORPAY_KEY_SECRET: z.string().default('mocksecretkey456'),
   RAZORPAY_WEBHOOK_SECRET: z.string().default('mockwebhooksecret789'),
+
+  // Application Origins for CORS
+  ADMIN_WEB_ORIGIN: z.string().default('http://localhost:5173'),
+  CUSTOMER_APP_ORIGIN: z.string().default('http://localhost:8081'),
+  PROVIDER_APP_ORIGIN: z.string().default('http://localhost:8082'),
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
+
+  // MFA & Security
+  MFA_ENCRYPTION_KEY: z.string().default('d791609508c549049cd86591d3aad804e123456789abcdef0123456789abcdef'),
+  SEED_DEFAULT_PASSWORD: z.string().default('ShubhMangalam@2026!'),
 });
 
 

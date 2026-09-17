@@ -3,7 +3,7 @@ export interface UserProfile {
   name: string;
   email: string;
   phone: string;
-  role: 'CUSTOMER' | 'OWNER' | 'ADMIN';
+  role: 'CUSTOMER' | 'VENDOR' | 'ADMIN';
   isEmailVerified: boolean;
   avatar: string | null;
 }

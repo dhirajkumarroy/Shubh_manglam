@@ -29,11 +29,36 @@ app.use((req: any, _res: Response, next: NextFunction) => {
 app.use(helmet());
 
 // 3. Cross-Origin Resource Sharing
+const allowedOrigins = [
+  env.ADMIN_WEB_ORIGIN,
+  env.CUSTOMER_APP_ORIGIN,
+  env.PROVIDER_APP_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:8081',
+  'http://localhost:8082',
+  'http://localhost:3000',
+  'http://localhost:5000',
+];
+
 app.use(
   cors({
-    origin: '*', // In production, customize this to trust specific domains
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (env.NODE_ENV === 'development') return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-request-id',
+      'x-device-id',
+      'x-device-type',
+    ],
     credentials: true,
   })
 );
