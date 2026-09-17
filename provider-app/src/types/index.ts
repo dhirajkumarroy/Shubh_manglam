@@ -14,6 +14,8 @@ export interface CatalogServiceItem {
   id: string;
   vendorId: string;
   categoryId: string;
+  subcategoryId?: string | null;
+  eventTypeId?: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -31,8 +33,29 @@ export interface CatalogServiceItem {
     name: string;
     icon?: string | null;
   };
+  subcategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  eventType?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   primaryImage?: string | null;
   images?: any[];
+}
+
+export interface EventType {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  icon?: string | null;
+  image?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
 }
 
 export interface CatalogPackageItem {
@@ -61,12 +84,14 @@ export interface CatalogPackageItem {
 
 export interface ServiceCategory {
   id: string;
+  parentId?: string | null;
   name: string;
   slug: string;
   icon?: string | null;
   description?: string | null;
   sortOrder?: number;
   isActive?: boolean;
+  subcategories?: ServiceCategory[];
 }
 
 export interface VendorDocumentItem {

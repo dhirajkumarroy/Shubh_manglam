@@ -18,12 +18,12 @@ import { useAuth } from '../store/AuthContext';
 
 const NAVIGATION_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'User Directory', path: '/users', icon: Users },
   { name: 'Service Providers', path: '/providers', icon: Store },
   { name: 'Celebration Types', path: '/event-types', icon: Calendar },
   { name: 'Categories', path: '/categories', icon: Tag },
   { name: 'Catalog Services', path: '/services', icon: Layers },
   { name: 'Package Combos', path: '/packages', icon: Package },
-  { name: 'Customers', path: '/users', icon: Users },
   { name: 'Event Bookings', path: '/bookings', icon: Calendar },
   { name: 'Payments & Payouts', path: '/payments', icon: CreditCard },
   { name: 'Reviews & Quality', path: '/reviews', icon: Star },

@@ -205,6 +205,13 @@ export class ProviderApiService {
     return res.data;
   }
 
+  static async getEventTypes(): Promise<any[]> {
+    const res = await this.request<any[]>('/event-types', {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
   static async updateVendorCategories(categoryIds: string[]): Promise<any> {
     const res = await this.request<any>('/vendor/categories', {
       method: 'PUT',
@@ -340,6 +347,29 @@ export class ProviderApiService {
   static async deletePackage(id: string): Promise<any> {
     const res = await this.request<any>(`/vendor/packages/${id}`, {
       method: 'DELETE',
+    });
+    return res.data;
+  }
+
+  // =========================================================================
+  // Inquiries & Bookings
+  // =========================================================================
+
+  static async getVendorInquiries(): Promise<any[]> {
+    const res = await this.request<any[]>('/bookings/vendor', {
+      method: 'GET',
+    });
+    return res.data || [];
+  }
+
+  static async respondToInquiry(
+    bookingId: string,
+    action: 'ACCEPT' | 'REJECT',
+    vendorNote?: string
+  ): Promise<any> {
+    const res = await this.request<any>(`/bookings/${bookingId}/respond`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action, vendorNote }),
     });
     return res.data;
   }

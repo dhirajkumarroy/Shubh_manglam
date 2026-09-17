@@ -2,6 +2,7 @@ import apiClient from './client';
 
 export interface Category {
   id: string;
+  parentId?: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -9,12 +10,15 @@ export interface Category {
   image: string | null;
   isActive: boolean;
   sortOrder: number;
+  subcategories?: Category[];
 }
 
 export interface ServiceItem {
   id: string;
   vendorId: string;
   categoryId: string;
+  subcategoryId?: string | null;
+  eventTypeId?: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -33,14 +37,30 @@ export interface ServiceItem {
     slug: string;
     icon: string | null;
   };
+  subcategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  eventType?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  distanceKm?: number | null;
   vendor?: {
     id: string;
     businessName: string;
     slug: string;
     city: string;
     state: string;
+    phone?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    operatingRadiusKm?: number;
     ratingAverage: number;
     ratingCount: number;
+    distanceKm?: number | null;
   };
   primaryImage?: string | null;
   images?: Array<{

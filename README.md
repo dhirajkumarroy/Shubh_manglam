@@ -1,125 +1,168 @@
-# Shubh Mangalam
+# 🪔 Shubh Mangalam (शुभ मंगलम)
 
-> **Har Function, Ek App**
-
-Shubh Mangalam is a local celebration and event-services marketplace designed to help customers discover and book trusted local service providers for life's important occasions and cultural ceremonies.
+> ### *"Har Celebration, Ek Platform"*
+> A full-stack, multi-application marketplace for discovering, booking, and managing local event services, cultural ceremonies, and family celebrations across India.
 
 ---
 
-## 🏛️ Platform Architecture
+## 🌟 Overview
 
-All three client applications communicate with the same central backend API service and PostgreSQL database:
+**Shubh Mangalam** eliminates the chaos of planning Indian celebrations. Whether organizing a **Birthday Party on 20 September**, a grand **Wedding & Reception**, a **Mundan ceremony**, or festive **Pooja rituals**, Shubh Mangalam connects event hosts with verified local service providers (Halwais, Decorators, Mehndi Artists, Makeup Artists, DJs, Pandits, Tent Houses) through a transparent, inquiry-first workflow.
+
+---
+
+## 🏗️ Architecture & Applications
+
+The repository is organized as a unified multi-application ecosystem sharing a central backend and PostgreSQL database:
 
 ```text
-       ┌────────────────────────┐
-       │  Customer Mobile App   │  (React Native / Expo)
-       └───────────┬────────────┘
-                   │
-       ┌───────────┴────────────┐
-       │  Provider Mobile App   │  (React Native / Expo)
-       └───────────┬────────────┘
-                   │
-                   ▼
-       ┌────────────────────────┐
-       │      Backend API       │  (Node.js, Express, TypeScript)
-       └───────────▲────────────┘
-                   │
-       ┌───────────┴────────────┐
-       │     Admin Web App      │  (React, TypeScript, Vite, Tailwind CSS)
-       └────────────────────────┘
-                   │
-                   ▼
-       ┌────────────────────────┐
-       │  PostgreSQL Database   │  (Prisma ORM)
-       └────────────────────────┘
+                               ┌─────────────────────────────────────────┐
+                               │           PostgreSQL Database           │
+                               │        (Prisma ORM Persistence)         │
+                               └────────────────────▲────────────────────┘
+                                                    │
+                               ┌────────────────────┴────────────────────┐
+                               │           Backend API Engine            │
+                               │   (Node.js, Express, TypeScript, JWT)   │
+                               └──────▲──────────────────▲────────▲──────┘
+                                      │                  │        │
+               ┌──────────────────────┴──────┐           │        └──────────────────────┐
+               │                             │           │                               │
+┌──────────────┴──────────────┐ ┌────────────┴───────────┴─┐ ┌───────────────────────────┴───┐
+│     Customer Mobile App     │ │    Provider Mobile App    │ │       Admin Web Portal        │
+│   (React Native + Expo)     │ │   (React Native + Expo)   │ │  (React 18 + Vite + Tailwind) │
+│                             │ │                           │ │                               │
+│ • Category & Vendor Search  │ │ • Live Inquiries Feed     │ │ • Platform Analytics          │
+│ • Custom Event Inquiries    │ │ • 1-Tap Accept / Reject   │ │ • Provider Acceptance Metrics │
+│ • Live Status Tracking      │ │ • Direct WhatsApp / Call  │ │ • KYC & Vendor Verification   │
+│ • Auspicious Top/Bottom Bar │ │ • Service Catalog Editor  │ │ • Silent Auto-Refresh Auth    │
+└─────────────────────────────┘ └───────────────────────────┘ └───────────────────────────────┘
 ```
 
-### Applications Overview
-1. **Customer Mobile App (`customer-app/`)**: Used by event hosts and families to plan events, discover local services, request quotes, book providers, and make secure payments.
-2. **Service Provider Mobile App (`provider-app/`)**: Used by local vendors (decorators, caterers, tent houses, DJs, photographers, makeup artists) to manage service packages, review booking requests, send quotes, and track orders.
-3. **Admin Web Application (`admin-web/`)**: Used by platform administrators to govern categories, verify service providers, resolve disputes, monitor marketplace volume, and manage platform configurations.
-4. **Backend API Service (`backend/`)**: Single centralized REST API with asynchronous job queues (BullMQ + Redis) and PostgreSQL persistence via Prisma ORM.
+| Application | Directory | Tech Stack | Purpose |
+|-------------|-----------|------------|---------|
+| **Customer App** | [`customer-app/`](./customer-app/) | React Native, Expo, Redux Toolkit, React Query | Mobile app for event hosts to discover vendors, send inquiries, and track bookings. |
+| **Provider App** | [`provider-app/`](./provider-app/) | React Native, Expo, React Navigation, Axios | Mobile app for local vendors to review incoming inquiries, accept/reject requests, and manage services. |
+| **Admin Web** | [`admin-web/`](./admin-web/) | React 18, Vite, TypeScript, Tailwind CSS | Governance dashboard to monitor inquiries, track provider response rates, and verify vendor KYC. |
+| **Backend API** | [`backend/`](./backend/) | Express, TypeScript, Prisma ORM, PostgreSQL, Redis | REST API engine powering authentication, inquiries, catalog, notifications, and analytics. |
 
 ---
 
-## 🎪 Occasions & Services (Vision)
+## 🎂 Real-World User Workflow (The Birthday Story)
 
-### Occasions Supported
-- **Weddings & Pre-Wedding** (Shaadi, Sagai, Mehndi, Sangeet, Reception)
-- **Birthdays & Anniversaries**
-- **Festivals & Rituals** (Teej, Chhath, Diwali, Durga Puja, Ganesh Utsav)
-- **Ceremonies & Pujas** (Mundan, Griha Pravesh, Satyanarayan Puja, Jagran)
-- **Family & Corporate Functions** (Baby Showers, Housewarming, Community Gatherings)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer as 🎂 Customer (Aman)
+    actor Provider as 👨‍🍳 Halwai Provider (Shree Krishna)
+    actor Admin as 🛡️ Platform Admin
 
-### Services Offered
-- **Decoration & Lighting** (Flower decoration, Stage, Theme lighting)
-- **Tent & Furniture** (Pandals, Seating, Crockery, Waterproof setups)
-- **Catering & Halwai** (Traditional sweets, Buffet, Live counters)
-- **Entertainment** (DJ, Dhol, Brass Band, Sound & Generator systems)
-- **Artists & Rituals** (Mehendi artists, Bridal Makeup, Pandits/Pujaris)
-- **Photography & Videography** (Cinematic video, Pre-wedding, Drone shoots)
-- **Venues & Logistics** (Marriage halls, Resorts, Guest transport)
+    Customer->>Customer: Opens Customer App, searches "Halwai"
+    Customer->>Customer: Finds "Shree Krishna Halwai & Caterers"
+    Customer->>Customer: Fills Inquiry: Occasion: Birthday, Date: 20 Sep 2026, Guests: 50
+    Customer->>Provider: Submits Inquiry (POST /api/v1/bookings/inquiries)
+    
+    Provider->>Provider: Receives notification badge in Provider App
+    Provider->>Provider: Reviews Inquiry (Occasion, Date, 50 guests, Desi Ghee sweets)
+    Provider->>Customer: Taps "✅ Accept Request" (PATCH /api/v1/bookings/:id/respond)
+    
+    Customer->>Customer: Status updates instantly to "✅ Accepted by Provider"
+    Customer->>Provider: Taps "💬 WhatsApp" to finalize menu details
 
----
-
-## 🔄 Project Transformation Status
-
-> **Important Notice:** This repository is currently undergoing architectural transformation from the legacy **GoVehicle** mobility platform into the **Shubh Mangalam** event-services marketplace.
-
-- **Current Status (Phase 0 Complete):** Multi-application repository architecture established (`backend/`, `customer-app/`, `provider-app/`, `admin-web/`).
-- **Functionality Note:** Core vehicle booking models and APIs remain preserved in the backend to maintain operational stability while the domain schema is systematically upgraded. Event booking, vendor marketplace, quotes, and catalog features are planned for subsequent phases.
-- **Roadmap:**
-  - **Phase 0:** Multi-app project structure setup (Completed)
-  - **Phase 1:** Branding & design tokens (Completed)
-  - **Phase 2:** Production Prisma schema & database domain redesign (Vendors, Services, Packages, Occasions, Bookings, Quotes)
-  - **Phase 3:** Backend REST APIs & business logic rewrite
-  - **Phase 4:** Client applications UI/UX implementation
-
----
-
-## 📁 Repository Structure
-
-```text
-ShubhMangalam/
-├── backend/          # Single Express + TypeScript + Prisma + BullMQ API
-├── customer-app/     # Customer React Native / Expo application
-├── provider-app/     # Service Provider React Native / Expo application
-├── admin-web/        # React + Vite + Tailwind CSS admin web console
-├── .gitignore        # Unified repository ignore rules
-├── .env.example      # Root environment variable documentation
-└── README.md         # Project documentation and architecture guide
+    Admin->>Admin: Admin Web Dashboard updates with 100% Provider Acceptance Rate
 ```
 
 ---
 
-## 🛠️ Quick Start Guide
+## 🎪 Core Categories & Services
 
-### 1. Backend
+The marketplace focuses on **8 core celebration services**:
+
+1. 🍲 **Halwai & Catering** — Traditional Desi Ghee sweets, Wedding Buffets, Live Chaat counters, Morning Poori Sabzi.
+2. 🎈 **Decoration** — Balloon Birthday themes, Stage & Flower Backdrops, Mandap & Varmala setups, Haldi/Mehndi decor.
+3. 💄 **Beautician & Makeup** — Party & Birthday Makeup, HD Bridal Makeover, Hair Styling & Saree Draping.
+4. 🌿 **Mehndi Artist** — Bridal Henna, Arabic & Modern designs, Family & Guest Mehndi packages.
+5. 📸 **Photography & Videography** — Birthday Shoots, Candid Wedding Photography, 4K Cinematic & Drone Coverage.
+6. 🎵 **DJ, Sound & Music** — Party DJ with Laser Lights, Traditional Dhol & Tasha troupes, PA Sound Systems.
+7. 🪔 **Pandit Ji & Rituals** — Birthday Havan & Puja, Vivah Sanskar, Griha Pravesh, Satyanarayan Katha.
+8. ⛺ **Tent & Furniture Setup** — Shamiyana Pandals, Banquet Chairs & VIP Sofas, Fairy Lights & Air Coolers.
+
+---
+
+## 🔑 Default Seeded Test Accounts
+
+Run `npm run seed` in `backend/` to populate these ready-to-test accounts.
+**Password for all accounts:** `Password@123`
+
+| Role | Email | Name / Business Name | Description |
+|------|-------|----------------------|-------------|
+| **Platform Admin** | `admin@gmail.com` | Super Admin | Access Admin Web at `http://localhost:3000` |
+| **Customer** | `customer@gmail.com` | Dhiraj Customer | Customer app login; can submit inquiries |
+| **Halwai Provider** | `halwai@gmail.com` | Shree Krishna Halwai & Caterers | Receives birthday catering inquiries |
+| **Beautician Provider** | `beautician@gmail.com` | Pooja Makeover & Mehndi Art | Receives makeup & henna inquiries |
+| **Decorator Provider** | `provider@gmail.com` | Royal Celebrations & Decor | Receives theme decor & tent inquiries |
+
+---
+
+## 🚀 Quick Start Guide
+
+### 1. Prerequisites
+- **Node.js**: v18+
+- **PostgreSQL**: v14+ running locally or via Docker
+- **npm** or **yarn**
+
+### 2. Backend Setup
 ```bash
 cd backend
 npm install
+cp .env.example .env
+# Set DATABASE_URL in .env
 npx prisma generate
+npx prisma db push
+npm run seed
 npm run dev
+# Server running at: http://localhost:8000
 ```
 
-### 2. Customer Mobile App
-```bash
-cd customer-app
-npm install
-npx expo start
-```
-
-### 3. Service Provider Mobile App
-```bash
-cd provider-app
-npm install
-npx expo start
-```
-
-### 4. Admin Web Portal
+### 3. Admin Web Portal
 ```bash
 cd admin-web
 npm install
 npm run dev
+# Open in browser: http://localhost:3000
+# Login: admin@gmail.com / Password@123
 ```
-# Shubh_manglam
+
+### 4. Customer Mobile App
+```bash
+cd customer-app
+npm install
+npx expo start
+# Press 'a' for Android emulator or scan QR with Expo Go
+```
+
+### 5. Provider Mobile App
+```bash
+cd provider-app
+npm install
+npx expo start
+# Runs Metro bundler on port 8082
+```
+
+---
+
+## 📚 Complete Technical Documentation
+
+For the comprehensive deep dive into:
+- System Flowcharts & State Machines
+- End-to-End Inquiry Lifecycle
+- Prisma Data Models & Entity Relationships
+- JWT Dual-Token Rotation & Silent Auto-Refresh Architecture
+- Complete REST API Route Reference
+
+👉 **Read the full documentation: [PROJECT_WORKFLOW_AND_ARCHITECTURE.md](./PROJECT_WORKFLOW_AND_ARCHITECTURE.md)**
+
+---
+
+## 📄 License
+This project is proprietary and maintained for the Shubh Mangalam platform.

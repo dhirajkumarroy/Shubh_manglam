@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,14 +13,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import { useServiceDetails } from '../../hooks/useEventPlanning';
+import { openDialer, openWhatsApp } from '../../utils/contact';
+import { InquiryModal } from '../../components/InquiryModal';
 
 export const ServiceDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const [inquiryModalVisible, setInquiryModalVisible] = useState<boolean>(false);
   const serviceId = route.params?.serviceId;
   const eventId = route.params?.eventId;
+  const latitude = route.params?.latitude;
+  const longitude = route.params?.longitude;
 
-  const { data: service, isLoading, error } = useServiceDetails(serviceId);
+  const { data: service, isLoading, error } = useServiceDetails(
+    serviceId,
+    latitude && longitude ? { latitude, longitude } : undefined
+  );
 
   if (isLoading) {
     return (
@@ -77,11 +85,7 @@ export const ServiceDetailsScreen: React.FC = () => {
   };
 
   const handleAction = () => {
-    Alert.alert(
-      'Service Inquired',
-      `You selected "${service.name}" by ${service.vendor?.businessName}. Full quotation negotiations and online booking checkout will activate in Phase 7.`,
-      [{ text: 'OK' }]
-    );
+    setInquiryModalVisible(true);
   };
 
   return (
@@ -162,13 +166,26 @@ export const ServiceDetailsScreen: React.FC = () => {
           {/* Vendor Card */}
           {service.vendor && (
             <View style={styles.vendorCard}>
-              <Text style={styles.vendorCardHeading}>OFFERED BY</Text>
+              <View style={styles.vendorCardHeaderRow}>
+                <Text style={styles.vendorCardHeading}>OFFERED BY</Text>
+                {service.distanceKm !== null && service.distanceKm !== undefined && (
+                  <View style={styles.distanceBadge}>
+                    <Text style={styles.distanceBadgeText}>📍 {service.distanceKm} km away</Text>
+                  </View>
+                )}
+              </View>
+
               <View style={styles.vendorCardBody}>
                 <View style={styles.vendorInfo}>
                   <Text style={styles.vendorName}>{service.vendor.businessName}</Text>
                   <Text style={styles.vendorLocation}>
                     📍 {service.vendor.city}, {service.vendor.state}
                   </Text>
+                  {service.vendor.phone && (
+                    <Text style={styles.vendorPhone}>
+                      📞 {service.vendor.phone}
+                    </Text>
+                  )}
                   <View style={styles.vendorRatingRow}>
                     <Text style={styles.ratingStar}>★</Text>
                     <Text style={styles.ratingNum}>
@@ -184,10 +201,36 @@ export const ServiceDetailsScreen: React.FC = () => {
                     navigation.navigate('VendorDetailsScreen', {
                       vendorId: service.vendor!.id,
                       eventId,
+                      latitude,
+                      longitude,
                     })
                   }
                 >
-                  <Text style={styles.viewVendorBtnText}>View Provider</Text>
+                  <Text style={styles.viewVendorBtnText}>View Profile →</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Vendor Quick Contact Action Buttons */}
+              <View style={styles.vendorContactRow}>
+                <TouchableOpacity
+                  style={styles.contactCallBtn}
+                  activeOpacity={0.8}
+                  onPress={() => openDialer(service.vendor?.phone || '')}
+                >
+                  <Text style={styles.contactCallBtnText}>📞 Call Provider</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.contactWhatsAppBtn}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    openWhatsApp(
+                      service.vendor?.phone || '',
+                      `Hello ${service.vendor?.businessName}, I found your service "${service.name}" on Shubh Mangalam and would like to check availability and pricing.`
+                    )
+                  }
+                >
+                  <Text style={styles.contactWhatsAppBtnText}>💬 WhatsApp</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -206,12 +249,48 @@ export const ServiceDetailsScreen: React.FC = () => {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={handleAction}>
-          <Text style={styles.actionBtnText}>
-            {service.pricingType === 'CUSTOM_QUOTE' ? 'Request Custom Quote' : 'Continue / Inquire'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.bottomActionsGroup}>
+          <TouchableOpacity
+            style={styles.bottomCallBtn}
+            activeOpacity={0.8}
+            onPress={() => openDialer(service.vendor?.phone || '')}
+          >
+            <Text style={styles.bottomCallIcon}>📞</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bottomWhatsAppBtn}
+            activeOpacity={0.8}
+            onPress={() =>
+              openWhatsApp(
+                service.vendor?.phone || '',
+                `Hello ${service.vendor?.businessName}, I found your service "${service.name}" on Shubh Mangalam and would like to check availability and pricing.`
+              )
+            }
+          >
+            <Text style={styles.bottomWhatsAppText}>💬 WhatsApp</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionBtn} onPress={handleAction}>
+            <Text style={styles.actionBtnText}>
+              {service.pricingType === 'CUSTOM_QUOTE' ? 'Custom Quote' : 'Inquire'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Inquiry Modal Form */}
+      {service.vendor && (
+        <InquiryModal
+          visible={inquiryModalVisible}
+          onClose={() => setInquiryModalVisible(false)}
+          vendorId={service.vendor.id}
+          vendorName={service.vendor.businessName}
+          serviceId={service.id}
+          serviceName={service.name}
+          onSuccess={() => navigation.navigate('CustomerInquiriesScreen')}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -421,12 +500,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  vendorCardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   vendorCardHeading: {
     fontSize: 10,
     fontWeight: '800',
     color: '#9CA3AF',
     letterSpacing: 0.5,
-    marginBottom: 8,
+  },
+  distanceBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  distanceBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4F46E5',
   },
   vendorCardBody: {
     flexDirection: 'row',
@@ -445,6 +540,12 @@ const styles = StyleSheet.create({
   vendorLocation: {
     fontSize: 12,
     color: '#6B7280',
+    marginTop: 2,
+  },
+  vendorPhone: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
     marginTop: 2,
   },
   vendorRatingRow: {
@@ -478,6 +579,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
   },
+  vendorContactRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  contactCallBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  contactCallBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  contactWhatsAppBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  contactWhatsAppBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#15803D',
+  },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -486,9 +625,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 22,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -497,19 +636,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#6B7280',
     fontWeight: '600',
   },
   bottomPrice: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
     color: colors.primary,
   },
+  bottomActionsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomCallBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  bottomCallIcon: {
+    fontSize: 18,
+  },
+  bottomWhatsAppBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#25D366',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 12,
+  },
+  bottomWhatsAppText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12,
+  },
   actionBtn: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderRadius: 12,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 3 },
@@ -520,7 +690,7 @@ const styles = StyleSheet.create({
   actionBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 13,
   },
 });
 

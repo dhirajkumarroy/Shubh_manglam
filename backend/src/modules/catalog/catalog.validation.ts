@@ -8,6 +8,8 @@ import { PricingType } from '@prisma/client';
 export const createServiceSchema = z
   .object({
     categoryId: z.string().uuid('Invalid Category ID format.'),
+    subcategoryId: z.string().uuid('Invalid Subcategory ID format.').nullable().optional(),
+    eventTypeId: z.string().uuid('Invalid Event Type ID format.').nullable().optional(),
     name: z.string().min(2, 'Service name must be at least 2 characters').max(120),
     description: z.string().max(3000).optional(),
     pricingType: z.nativeEnum(PricingType, {
@@ -60,6 +62,8 @@ export const createServiceSchema = z
 export const updateServiceSchema = z
   .object({
     categoryId: z.string().uuid('Invalid Category ID format.').optional(),
+    subcategoryId: z.string().uuid('Invalid Subcategory ID format.').nullable().optional(),
+    eventTypeId: z.string().uuid('Invalid Event Type ID format.').nullable().optional(),
     name: z.string().min(2, 'Service name must be at least 2 characters').max(120).optional(),
     description: z.string().max(3000).optional(),
     pricingType: z.nativeEnum(PricingType).optional(),
@@ -169,6 +173,8 @@ export const catalogQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),
+  subcategoryId: z.string().uuid().optional(),
+  eventTypeId: z.string().uuid().optional(),
   vendorId: z.string().uuid().optional(),
   pricingType: z.nativeEnum(PricingType).optional(),
   minPrice: z.coerce.number().min(0).optional(),

@@ -16,9 +16,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    const handleAuthLogout = () => {
+      setAdmin(null);
+    };
+
+    window.addEventListener('admin_auth_logout', handleAuthLogout);
+
     const initAuth = async () => {
       const token = adminAuthService.getToken();
-      if (!token) {
+      const refreshToken = adminAuthService.getRefreshToken();
+
+      if (!token && !refreshToken) {
         setLoading(false);
         return;
       }
@@ -28,16 +36,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.user && data.user.role === 'ADMIN') {
           setAdmin(data.user);
         } else {
-          adminAuthService.setToken(null);
+          adminAuthService.setTokens(null, null);
+          setAdmin(null);
         }
-      } catch {
-        adminAuthService.setToken(null);
+      } catch (err) {
+        console.error('Failed to restore admin session:', err);
+        adminAuthService.setTokens(null, null);
+        setAdmin(null);
       } finally {
         setLoading(false);
       }
     };
 
     initAuth();
+
+    return () => {
+      window.removeEventListener('admin_auth_logout', handleAuthLogout);
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string; mfaCode?: string }): Promise<AdminLoginResponse> => {

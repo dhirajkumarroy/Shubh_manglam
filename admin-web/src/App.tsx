@@ -12,6 +12,7 @@ import CategoriesPage from './pages/CategoriesPage';
 import ServicesPage from './pages/ServicesPage';
 import PackagesPage from './pages/PackagesPage';
 import EventTypesPage from './pages/EventTypesPage';
+import UsersPage from './pages/UsersPage';
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<AdminLayout />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="users" element={<UsersPage />} />
                 <Route path="providers" element={<VendorListPage />} />
                 <Route path="providers/:id" element={<VendorDetailsPage />} />
                 <Route path="event-types" element={<EventTypesPage />} />

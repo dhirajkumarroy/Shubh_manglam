@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, StyleSheet, Platform, View, StatusBar } from 'react-native';
-import { useAppSelector } from '../store';
+import { StyleSheet, Platform, View, StatusBar } from 'react-native';
+import { useAppSelector, useAppDispatch } from '../store';
+import { logoutUser } from '../store/slices/authSlice';
 import OfflineBanner from '../components/OfflineBanner';
 import { useUnreadCount } from '../hooks/useNotifications';
 import colors from '../theme/colors';
@@ -12,6 +13,12 @@ import {
   AppTabParamList,
   ProfileStackParamList,
 } from './types';
+import { navigate } from './navigationRef';
+
+// Top Bar, Side Menu & Bottom Bar Components
+import CustomerTopBar from '../components/CustomerTopBar';
+import CustomerSideMenu from '../components/CustomerSideMenu';
+import CustomerBottomBar from '../components/CustomerBottomBar';
 
 // Auth Screens
 import SplashScreen from '../screens/auth/SplashScreen';
@@ -39,6 +46,9 @@ import PackageDetailsScreen from '../screens/marketplace/PackageDetailsScreen';
 
 // Notification Screen
 import NotificationsScreen from '../screens/notification/NotificationsScreen';
+
+// Inquiries Screen
+import CustomerInquiriesScreen from '../screens/events/CustomerInquiriesScreen';
 
 // Profile Screen
 import ProfileScreen from '../screens/profile/ProfileScreen';
@@ -74,42 +84,40 @@ const HomeStackNavigator = () => {
       <HomeStack.Screen name="VendorDetailsScreen" component={VendorDetailsScreen} />
       <HomeStack.Screen name="ServiceDetailsScreen" component={ServiceDetailsScreen} />
       <HomeStack.Screen name="PackageDetailsScreen" component={PackageDetailsScreen} />
+      <HomeStack.Screen name="CustomerInquiriesScreen" component={CustomerInquiriesScreen} />
     </HomeStack.Navigator>
   );
 };
 
-// 3. Profile Stack Navigator
+// 3. Events Stack Navigator
+const EventsStackNavigator = () => {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name="EventTypesScreen" component={EventTypesScreen} />
+      <HomeStack.Screen name="CreateEventScreen" component={CreateEventScreen} />
+      <HomeStack.Screen name="EventDetailsScreen" component={EventDetailsScreen} />
+      <HomeStack.Screen name="EventRequirementsScreen" component={EventRequirementsScreen} />
+    </HomeStack.Navigator>
+  );
+};
+
+// 4. Profile Stack Navigator
 const ProfileStackNavigator = () => {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <ProfileStack.Screen name="CustomerInquiriesScreen" component={CustomerInquiriesScreen} />
     </ProfileStack.Navigator>
   );
 };
 
-// 4. Main App Bottom Tab Navigator
+// 5. Main App Bottom Tab Navigator
 const AppTabNavigator = () => {
-  const { data: unreadCountData } = useUnreadCount();
-  const unreadCount = unreadCountData?.count || 0;
-
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIcon: ({ color }) => {
-          let icon = '';
-          if (route.name === 'HomeTab') icon = '🏠';
-          else if (route.name === 'NotificationTab') icon = '🔔';
-          else if (route.name === 'ProfileTab') icon = '👤';
-
-          return <Text style={{ fontSize: 20, color }}>{icon}</Text>;
-        },
-      })}
+      tabBar={(props) => <CustomerBottomBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen
         name="HomeTab"
@@ -117,18 +125,19 @@ const AppTabNavigator = () => {
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
+        name="InquiriesTab"
+        component={CustomerInquiriesScreen}
+        options={{ tabBarLabel: 'Requests' }}
+      />
+      <Tab.Screen
+        name="EventsTab"
+        component={EventsStackNavigator}
+        options={{ tabBarLabel: 'Events' }}
+      />
+      <Tab.Screen
         name="NotificationTab"
         component={NotificationsScreen}
-        options={{
-          tabBarLabel: 'Alerts',
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: '#ef4444',
-            color: '#ffffff',
-            fontSize: 10,
-            lineHeight: 14,
-          },
-        }}
+        options={{ tabBarLabel: 'Alerts' }}
       />
       <Tab.Screen
         name="ProfileTab"
@@ -136,6 +145,50 @@ const AppTabNavigator = () => {
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
+  );
+};
+
+// 6. Customer Main Shell with Top Toolbar & Side Menu Drawer
+const CustomerMainShell = () => {
+  const [sideMenuVisible, setSideMenuVisible] = useState(false);
+  const { user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const { data: unreadCountData } = useUnreadCount();
+  const unreadCount = unreadCountData?.count || 0;
+
+  return (
+    <View style={styles.shellContainer}>
+      {/* Top Tool Bar */}
+      <CustomerTopBar
+        userName={user?.name || 'Dhiraj Customer'}
+        unreadNotificationsCount={unreadCount}
+        onOpenMenu={() => setSideMenuVisible(true)}
+        onOpenNotifications={() => navigate('NotificationTab')}
+        onOpenProfile={() => navigate('ProfileTab')}
+      />
+
+      {/* Main Tab Area with Persistent Bottom Menu Bar */}
+      <View style={styles.tabContentArea}>
+        <AppTabNavigator />
+      </View>
+
+      {/* Slide-out Side Menu Drawer */}
+      <CustomerSideMenu
+        visible={sideMenuVisible}
+        onClose={() => setSideMenuVisible(false)}
+        customerName={user?.name || 'Dhiraj Customer'}
+        phone={user?.phone || '+919811111111'}
+        email={user?.email || 'customer@gmail.com'}
+        onNavigateHome={() => navigate('HomeTab')}
+        onNavigateInquiries={() => navigate('InquiriesTab')}
+        onNavigateEvents={() => navigate('EventsTab')}
+        onNavigateLocations={() => navigate('HomeTab', { screen: 'LocationSelectionScreen' })}
+        onNavigateNotifications={() => navigate('NotificationTab')}
+        onNavigateProfile={() => navigate('ProfileTab')}
+        onNavigateChangePassword={() => navigate('ChangePassword')}
+        onLogout={() => dispatch(logoutUser())}
+      />
+    </View>
   );
 };
 
@@ -149,24 +202,18 @@ export const RootNavigator: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }}>
       <OfflineBanner />
-      {isAuthenticated ? <AppTabNavigator /> : <AuthStackNavigator />}
+      {isAuthenticated ? <CustomerMainShell /> : <AuthStackNavigator />}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    height: Platform.OS === 'ios' ? 88 : 64,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+  shellContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  tabBarLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
+  tabContentArea: {
+    flex: 1,
   },
 });
 

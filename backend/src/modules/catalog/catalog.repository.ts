@@ -19,6 +19,8 @@ export class CatalogRepository {
       data: {
         vendorId,
         categoryId: dto.categoryId,
+        subcategoryId: dto.subcategoryId ?? null,
+        eventTypeId: dto.eventTypeId ?? null,
         name: dto.name,
         slug,
         description: dto.description,
@@ -34,6 +36,8 @@ export class CatalogRepository {
       },
       include: {
         category: true,
+        subcategory: true,
+        eventType: true,
         images: true,
       },
     });
@@ -44,6 +48,8 @@ export class CatalogRepository {
       where: { id },
       include: {
         category: true,
+        subcategory: true,
+        eventType: true,
         vendor: {
           select: {
             id: true,
@@ -69,6 +75,11 @@ export class CatalogRepository {
       where: {
         vendorId_slug: { vendorId, slug },
       },
+      include: {
+        category: true,
+        subcategory: true,
+        eventType: true,
+      },
     });
   }
 
@@ -82,6 +93,8 @@ export class CatalogRepository {
         orderBy,
         include: {
           category: true,
+          subcategory: true,
+          eventType: true,
           vendor: {
             select: {
               id: true,
@@ -110,6 +123,20 @@ export class CatalogRepository {
     const updateData: Prisma.ServiceUpdateInput = {};
 
     if (data.categoryId !== undefined) updateData.category = { connect: { id: data.categoryId } };
+    if (data.subcategoryId !== undefined) {
+      if (data.subcategoryId === null) {
+        updateData.subcategory = { disconnect: true };
+      } else {
+        updateData.subcategory = { connect: { id: data.subcategoryId } };
+      }
+    }
+    if (data.eventTypeId !== undefined) {
+      if (data.eventTypeId === null) {
+        updateData.eventType = { disconnect: true };
+      } else {
+        updateData.eventType = { connect: { id: data.eventTypeId } };
+      }
+    }
     if (data.name !== undefined) updateData.name = data.name;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.description !== undefined) updateData.description = data.description;
@@ -134,6 +161,8 @@ export class CatalogRepository {
       data: updateData,
       include: {
         category: true,
+        subcategory: true,
+        eventType: true,
         images: true,
       },
     });

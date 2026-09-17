@@ -67,7 +67,11 @@ export class MarketplaceController {
   getService = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { serviceId } = req.params;
-      const service = await this.service.getServiceById(serviceId);
+      const coords =
+        req.query.latitude && req.query.longitude
+          ? { latitude: Number(req.query.latitude), longitude: Number(req.query.longitude) }
+          : undefined;
+      const service = await this.service.getServiceById(serviceId, coords);
       res.status(200).json(ResponseDto.success('Service details retrieved successfully.', service));
     } catch (error) {
       next(error);

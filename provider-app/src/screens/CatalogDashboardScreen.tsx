@@ -15,12 +15,14 @@ import { ProviderApiService } from '../services/api';
 import { CatalogServiceItem, CatalogPackageItem } from '../types';
 
 interface CatalogDashboardScreenProps {
-  onBack: () => void;
+  onBack?: () => void;
   onAddService: () => void;
   onEditService: (id: string) => void;
   onManageImages: (serviceId: string, serviceName: string) => void;
   onAddPackage: () => void;
   onEditPackage: (id: string) => void;
+  initialTab?: 'SERVICES' | 'PACKAGES';
+  hideHeader?: boolean;
 }
 
 export const CatalogDashboardScreen: React.FC<CatalogDashboardScreenProps> = ({
@@ -30,11 +32,19 @@ export const CatalogDashboardScreen: React.FC<CatalogDashboardScreenProps> = ({
   onManageImages,
   onAddPackage,
   onEditPackage,
+  initialTab = 'SERVICES',
+  hideHeader = false,
 }) => {
-  const [activeTab, setActiveTab] = useState<'SERVICES' | 'PACKAGES'>('SERVICES');
+  const [activeTab, setActiveTab] = useState<'SERVICES' | 'PACKAGES'>(initialTab);
   const [services, setServices] = useState<CatalogServiceItem[]>([]);
   const [packages, setPackages] = useState<CatalogPackageItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const fetchCatalog = async () => {
     try {
@@ -110,10 +120,20 @@ export const CatalogDashboardScreen: React.FC<CatalogDashboardScreenProps> = ({
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardInfo}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>
-                {item.category?.name || 'General'}
-              </Text>
+            <View style={styles.badgeRow}>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>
+                  {item.category?.name || 'General'}
+                  {item.subcategory ? ` • ${item.subcategory.name}` : ''}
+                </Text>
+              </View>
+              {item.eventType && (
+                <View style={styles.eventBadge}>
+                  <Text style={styles.eventBadgeText}>
+                    🎉 {item.eventType.name}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text style={styles.cardTitle}>{item.name}</Text>
           </View>
@@ -241,25 +261,29 @@ export const CatalogDashboardScreen: React.FC<CatalogDashboardScreenProps> = ({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, hideHeader && { backgroundColor: 'transparent' }]}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Catalog Management</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={activeTab === 'SERVICES' ? onAddService : onAddPackage}
-        >
-          <Text style={styles.addBtnText}>
-            {activeTab === 'SERVICES' ? '+ Service' : '+ Package'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {!hideHeader && (
+        <View style={styles.header}>
+          {onBack && (
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>Catalog Management</Text>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={activeTab === 'SERVICES' ? onAddService : onAddPackage}
+          >
+            <Text style={styles.addBtnText}>
+              {activeTab === 'SERVICES' ? '+ Service' : '+ Package'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Tabs */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, hideHeader && { marginTop: 12 }]}>
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'SERVICES' && styles.tabItemActive]}
           onPress={() => setActiveTab('SERVICES')}
@@ -286,6 +310,17 @@ export const CatalogDashboardScreen: React.FC<CatalogDashboardScreenProps> = ({
             Packages ({packages.length})
           </Text>
         </TouchableOpacity>
+
+        {hideHeader && (
+          <TouchableOpacity
+            style={[styles.addBtn, { paddingVertical: 8, paddingHorizontal: 12, marginLeft: 8 }]}
+            onPress={activeTab === 'SERVICES' ? onAddService : onAddPackage}
+          >
+            <Text style={styles.addBtnText}>
+              {activeTab === 'SERVICES' ? '+ Service' : '+ Package'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
@@ -437,18 +472,33 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
   categoryBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
-    marginBottom: 4,
   },
   categoryBadgeText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#92400E',
+  },
+  eventBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  eventBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4F46E5',
   },
   cardTitle: {
     fontSize: 16,

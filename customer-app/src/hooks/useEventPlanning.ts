@@ -90,10 +90,13 @@ export const useMarketplaceServices = (params?: any) => {
   });
 };
 
-export const useServiceDetails = (serviceId?: string) => {
+export const useServiceDetails = (
+  serviceId?: string,
+  coords?: { latitude?: number; longitude?: number }
+) => {
   return useQuery({
-    queryKey: ['marketplace-service', serviceId],
-    queryFn: () => (serviceId ? MarketplaceService.getServiceById(serviceId) : null),
+    queryKey: ['marketplace-service', serviceId, coords],
+    queryFn: () => (serviceId ? MarketplaceService.getServiceById(serviceId, coords) : null),
     enabled: !!serviceId,
   });
 };

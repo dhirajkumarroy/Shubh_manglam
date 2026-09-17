@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import ProviderSplashScreen from '../screens/ProviderSplashScreen';
 import ProviderHomeScreen from '../screens/ProviderHomeScreen';
+import ProviderMainScreen from '../screens/ProviderMainScreen';
 import ProviderLoginScreen from '../screens/ProviderLoginScreen';
 import ProviderRegisterScreen from '../screens/ProviderRegisterScreen';
 import VendorOnboardingScreen from '../screens/VendorOnboardingScreen';
@@ -57,10 +58,16 @@ export const RootNavigator: React.FC = () => {
       </Stack.Screen>
       <Stack.Screen name="ProviderHome">
         {({ route, navigation }) => (
-          <ProviderHomeScreen
+          <ProviderMainScreen
             vendorStatus={route.params?.vendorStatus}
             onNavigateToOnboarding={() => navigation.navigate('VendorOnboarding')}
-            onNavigateToCatalog={() => navigation.navigate('CatalogDashboard')}
+            onAddService={() => navigation.navigate('ServiceForm')}
+            onEditService={(id) => navigation.navigate('ServiceForm', { serviceId: id })}
+            onManageImages={(serviceId, serviceName) =>
+              navigation.navigate('ServiceImages', { serviceId, serviceName })
+            }
+            onAddPackage={() => navigation.navigate('PackageForm')}
+            onEditPackage={(id) => navigation.navigate('PackageForm', { packageId: id })}
             onLogout={async () => {
               await ProviderApiService.logout();
               navigation.replace('ProviderLogin');
@@ -86,8 +93,8 @@ export const RootNavigator: React.FC = () => {
         {({ route, navigation }) => (
           <ServiceFormScreen
             serviceId={route.params?.serviceId}
-            onBack={() => navigation.navigate('CatalogDashboard')}
-            onSuccess={() => navigation.navigate('CatalogDashboard')}
+            onBack={() => navigation.navigate('ProviderHome')}
+            onSuccess={() => navigation.navigate('ProviderHome')}
           />
         )}
       </Stack.Screen>
@@ -96,7 +103,7 @@ export const RootNavigator: React.FC = () => {
           <ServiceImagesScreen
             serviceId={route.params.serviceId}
             serviceName={route.params.serviceName}
-            onBack={() => navigation.navigate('CatalogDashboard')}
+            onBack={() => navigation.navigate('ProviderHome')}
           />
         )}
       </Stack.Screen>
@@ -104,8 +111,8 @@ export const RootNavigator: React.FC = () => {
         {({ route, navigation }) => (
           <PackageFormScreen
             packageId={route.params?.packageId}
-            onBack={() => navigation.navigate('CatalogDashboard')}
-            onSuccess={() => navigation.navigate('CatalogDashboard')}
+            onBack={() => navigation.navigate('ProviderHome')}
+            onSuccess={() => navigation.navigate('ProviderHome')}
           />
         )}
       </Stack.Screen>

@@ -1,7 +1,13 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+import apiClient from './apiClient';
 
 export interface CategoryItem {
   id: string;
+  parentId?: string | null;
+  parent?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   name: string;
   slug: string;
   description: string | null;
@@ -9,6 +15,8 @@ export interface CategoryItem {
   image: string | null;
   isActive: boolean;
   sortOrder: number;
+  subcategories?: CategoryItem[];
+  subcategoryCount?: number;
   vendorCount: number;
   serviceCount: number;
   createdAt: string;
@@ -26,6 +34,7 @@ export interface CategoryListResponse {
 }
 
 export interface CreateCategoryPayload {
+  parentId?: string | null;
   name: string;
   description?: string;
   icon?: string;
@@ -35,6 +44,7 @@ export interface CreateCategoryPayload {
 }
 
 export interface UpdateCategoryPayload {
+  parentId?: string | null;
   name?: string;
   description?: string;
   icon?: string;
@@ -44,43 +54,22 @@ export interface UpdateCategoryPayload {
 }
 
 class AdminCategoryService {
-  private getToken(): string | null {
-    return sessionStorage.getItem('admin_access_token');
-  }
-
   private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = this.getToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || 'Request failed');
-    }
-    return data.data;
+    return apiClient.request<T>(endpoint, options);
   }
 
   async listCategories(params: {
     page?: number;
     limit?: number;
     search?: string;
+    parentId?: string | null;
     isActive?: boolean;
   }): Promise<CategoryListResponse> {
     const query = new URLSearchParams();
     if (params.page) query.append('page', String(params.page));
     if (params.limit) query.append('limit', String(params.limit));
     if (params.search) query.append('search', params.search);
+    if (params.parentId !== undefined && params.parentId !== null) query.append('parentId', params.parentId);
     if (params.isActive !== undefined) query.append('isActive', String(params.isActive));
 
     return this.request<CategoryListResponse>(`/admin/categories?${query.toString()}`);

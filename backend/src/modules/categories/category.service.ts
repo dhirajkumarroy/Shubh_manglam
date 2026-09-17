@@ -45,6 +45,8 @@ export class CategoryService {
       },
       categories: categories.map((c) => ({
         id: c.id,
+        parentId: c.parentId,
+        parent: c.parent,
         name: c.name,
         slug: c.slug,
         description: c.description,
@@ -52,6 +54,8 @@ export class CategoryService {
         image: c.image,
         isActive: c.isActive,
         sortOrder: c.sortOrder,
+        subcategories: c.subcategories,
+        subcategoryCount: c._count.subcategories,
         vendorCount: c._count.vendorCategories,
         serviceCount: c._count.services,
         createdAt: c.createdAt,
@@ -72,15 +76,26 @@ export class CategoryService {
   }
 
   /**
-   * Admin: Creates a new category.
+   * Admin: Creates a new category or subcategory.
    */
   async createCategory(dto: CreateCategoryDto, adminUserId?: string) {
-    logger.info(`CategoryService: Creating category '${dto.name}'`);
-    const slug = slugify(dto.name);
+    logger.info(`CategoryService: Creating category '${dto.name}' (parent: ${dto.parentId || 'root'})`);
+    
+    if (dto.parentId) {
+      const parent = await this.categoryRepo.findById(dto.parentId);
+      if (!parent) {
+        throw new NotFoundError('Parent category not found.');
+      }
+    }
 
+    let slug = slugify(dto.name);
     const existing = await this.categoryRepo.findBySlug(slug);
     if (existing) {
-      throw new ConflictError(`A category with name '${dto.name}' already exists.`);
+      if (dto.parentId) {
+        slug = `${slug}-${Math.random().toString(36).substring(2, 6)}`;
+      } else {
+        throw new ConflictError(`A category with name '${dto.name}' already exists.`);
+      }
     }
 
     const category = await this.categoryRepo.createCategory({

@@ -2,13 +2,15 @@ import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
 import { ResponseDto } from '../common/dto/api-response.dto';
 
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000; // 24 hours (86,400,000 ms)
+
 export const rateLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX,
+  windowMs: env.RATE_LIMIT_WINDOW_MS || TWENTY_FOUR_HOURS_MS,
+  max: env.NODE_ENV === 'production' ? env.RATE_LIMIT_MAX : 50000,
   standardHeaders: true,
   legacyHeaders: false,
   message: ResponseDto.error(
-    'Too many requests from this IP, please try again after 15 minutes.'
+    'Too many requests from this IP, please try again after 24 hours.'
   ),
   handler: (_req, res, _next, options) => {
     res.status(options.statusCode).json(options.message);
@@ -19,12 +21,12 @@ export const rateLimiter = rateLimit({
  * Strict rate limiter for sensitive authentication endpoints (brute-force defense).
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: env.NODE_ENV === 'test' ? 1000 : 30, // 30 attempts per 15 minutes in production
+  windowMs: TWENTY_FOUR_HOURS_MS, // 24 hours
+  max: env.NODE_ENV === 'production' ? 50 : 2000, // 50 attempts in prod per 24h, 2000 in dev
   standardHeaders: true,
   legacyHeaders: false,
   message: ResponseDto.error(
-    'Too many authentication attempts from this IP, please try again after 15 minutes.'
+    'Too many authentication attempts from this IP, please try again after 24 hours.'
   ),
   handler: (_req, res, _next, options) => {
     res.status(options.statusCode).json(options.message);

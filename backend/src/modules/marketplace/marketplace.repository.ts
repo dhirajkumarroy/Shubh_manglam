@@ -75,6 +75,16 @@ export class MarketplaceRepository {
       };
     }
 
+    if (query.subcategoryId) {
+      whereClause.services = {
+        some: {
+          subcategoryId: query.subcategoryId,
+          isActive: true,
+          isAvailable: true,
+        },
+      };
+    }
+
     if (query.eventType) {
       whereClause.categories = {
         some: {
@@ -367,6 +377,12 @@ export class MarketplaceRepository {
       isActive: true,
     };
 
+    if (query.parentId !== undefined) {
+      whereClause.parentId = query.parentId === 'null' ? null : query.parentId;
+    } else {
+      whereClause.parentId = null; // Default to root domains
+    }
+
     if (query.search) {
       whereClause.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -386,6 +402,20 @@ export class MarketplaceRepository {
       where: whereClause,
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       include: {
+        subcategories: {
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            icon: true,
+            image: true,
+            sortOrder: true,
+            parentId: true,
+          },
+        },
         _count: {
           select: {
             vendorCategories: {
@@ -421,6 +451,8 @@ export class MarketplaceRepository {
       icon: c.icon,
       image: c.image,
       sortOrder: c.sortOrder,
+      parentId: c.parentId,
+      subcategories: c.subcategories || [],
       vendorCount: c._count.vendorCategories,
       serviceCount: c._count.services,
     }));
@@ -447,17 +479,26 @@ export class MarketplaceRepository {
     if (query.categoryId) {
       whereClause.OR = [{ categoryId: query.categoryId }, { category: { slug: query.categoryId } }];
     }
+    if (query.subcategoryId) {
+      whereClause.subcategoryId = query.subcategoryId;
+    }
     if (query.vendorId) {
       whereClause.vendorId = query.vendorId;
     }
     if (query.eventTypeId) {
-      whereClause.category = {
-        eventTypeCategories: {
-          some: {
-            OR: [{ eventTypeId: query.eventTypeId }, { eventType: { slug: query.eventTypeId } }],
+      whereClause.OR = [
+        { eventTypeId: query.eventTypeId },
+        { eventType: { slug: query.eventTypeId } },
+        {
+          category: {
+            eventTypeCategories: {
+              some: {
+                OR: [{ eventTypeId: query.eventTypeId }, { eventType: { slug: query.eventTypeId } }],
+              },
+            },
           },
         },
-      };
+      ];
     }
     if (query.search) {
       whereClause.OR = [
@@ -493,44 +534,59 @@ export class MarketplaceRepository {
       orderBy = [{ vendor: { ratingAverage: 'desc' } }];
     }
 
-    const [total, services] = await Promise.all([
-      prisma.service.count({ where: whereClause }),
-      prisma.service.findMany({
-        where: whereClause,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          category: true,
-          vendor: {
-            select: {
-              id: true,
-              businessName: true,
-              slug: true,
-              city: true,
-              state: true,
-              ratingAverage: true,
-              ratingCount: true,
-            },
-          },
-          images: {
-            orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    const hasCoords = query.latitude !== undefined && query.longitude !== undefined;
+
+    const rawServices = await prisma.service.findMany({
+      where: whereClause,
+      orderBy,
+      ...(hasCoords ? {} : { skip: (page - 1) * limit, take: limit }),
+      include: {
+        category: true,
+        subcategory: true,
+        eventType: true,
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            slug: true,
+            phone: true,
+            city: true,
+            state: true,
+            latitude: true,
+            longitude: true,
+            operatingRadiusKm: true,
+            ratingAverage: true,
+            ratingCount: true,
           },
         },
-      }),
-    ]);
-
-    return {
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+        },
       },
-      services: services.map((s) => ({
+    });
+
+    let mappedServices = rawServices.map((s) => {
+      let distanceKm: number | null = null;
+      if (
+        hasCoords &&
+        s.vendor?.latitude !== null &&
+        s.vendor?.latitude !== undefined &&
+        s.vendor?.longitude !== null &&
+        s.vendor?.longitude !== undefined
+      ) {
+        distanceKm = calculateHaversineDistanceKm(
+          query.latitude!,
+          query.longitude!,
+          Number(s.vendor.latitude),
+          Number(s.vendor.longitude)
+        );
+      }
+
+      return {
         id: s.id,
         vendorId: s.vendorId,
         categoryId: s.categoryId,
+        subcategoryId: s.subcategoryId,
         name: s.name,
         slug: s.slug,
         description: s.description,
@@ -544,19 +600,65 @@ export class MarketplaceRepository {
         isAvailable: s.isAvailable,
         isActive: s.isActive,
         category: s.category,
+        subcategory: s.subcategory,
+        eventTypeId: s.eventTypeId,
+        eventType: s.eventType,
+        distanceKm,
         vendor: s.vendor
           ? {
               ...s.vendor,
+              latitude: s.vendor.latitude ? Number(s.vendor.latitude) : null,
+              longitude: s.vendor.longitude ? Number(s.vendor.longitude) : null,
+              operatingRadiusKm: Number(s.vendor.operatingRadiusKm),
               ratingAverage: Number(s.vendor.ratingAverage),
+              distanceKm,
             }
           : undefined,
         primaryImage: s.images.find((i) => i.isPrimary)?.url || s.images[0]?.url || null,
         images: s.images,
-      })),
+      };
+    });
+
+    if (hasCoords) {
+      mappedServices = mappedServices.filter((s) => {
+        if (s.distanceKm === null) return false;
+        const operatingRadius = s.vendor?.operatingRadiusKm ?? 50;
+        const maxRadius = query.radius ? Math.min(query.radius, operatingRadius) : operatingRadius;
+        return s.distanceKm <= maxRadius;
+      });
+
+      if (query.sortBy === 'nearest') {
+        mappedServices.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+      }
+
+      const total = mappedServices.length;
+      const totalPages = Math.ceil(total / limit);
+      const paginatedItems = mappedServices.slice((page - 1) * limit, page * limit);
+
+      return {
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+        services: paginatedItems,
+      };
+    }
+
+    const totalCount = await prisma.service.count({ where: whereClause });
+    return {
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+      services: mappedServices,
     };
   }
 
-  async getServiceById(idOrSlug: string) {
+  async getServiceById(idOrSlug: string, coords?: { latitude?: number; longitude?: number }) {
     const service = await prisma.service.findFirst({
       where: {
         OR: [{ id: idOrSlug }, { slug: idOrSlug }],
@@ -568,6 +670,8 @@ export class MarketplaceRepository {
       },
       include: {
         category: true,
+        subcategory: true,
+        eventType: true,
         vendor: {
           select: {
             id: true,
@@ -579,6 +683,8 @@ export class MarketplaceRepository {
             pincode: true,
             phone: true,
             email: true,
+            latitude: true,
+            longitude: true,
             ratingAverage: true,
             ratingCount: true,
             operatingRadiusKm: true,
@@ -592,10 +698,28 @@ export class MarketplaceRepository {
 
     if (!service) return null;
 
+    let distanceKm: number | null = null;
+    if (
+      coords?.latitude !== undefined &&
+      coords?.longitude !== undefined &&
+      service.vendor?.latitude !== null &&
+      service.vendor?.latitude !== undefined &&
+      service.vendor?.longitude !== null &&
+      service.vendor?.longitude !== undefined
+    ) {
+      distanceKm = calculateHaversineDistanceKm(
+        coords.latitude,
+        coords.longitude,
+        Number(service.vendor.latitude),
+        Number(service.vendor.longitude)
+      );
+    }
+
     return {
       id: service.id,
       vendorId: service.vendorId,
       categoryId: service.categoryId,
+      subcategoryId: service.subcategoryId,
       name: service.name,
       slug: service.slug,
       description: service.description,
@@ -609,10 +733,17 @@ export class MarketplaceRepository {
       isAvailable: service.isAvailable,
       isActive: service.isActive,
       category: service.category,
+      subcategory: service.subcategory,
+      eventTypeId: service.eventTypeId,
+      eventType: service.eventType,
+      distanceKm,
       vendor: {
         ...service.vendor,
+        latitude: service.vendor.latitude ? Number(service.vendor.latitude) : null,
+        longitude: service.vendor.longitude ? Number(service.vendor.longitude) : null,
         ratingAverage: Number(service.vendor.ratingAverage),
         operatingRadiusKm: Number(service.vendor.operatingRadiusKm),
+        distanceKm,
       },
       primaryImage: service.images.find((i) => i.isPrimary)?.url || service.images[0]?.url || null,
       images: service.images,

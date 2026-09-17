@@ -15,12 +15,14 @@ export const useNotifications = (params?: { page?: number; limit?: number }) => 
  * Hook to retrieve total unread notifications count.
  * Configured with background polling to automatically update the tab badge.
  */
-export const useUnreadCount = () => {
+export const useUnreadCount = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['unreadCount'],
     queryFn: () => notificationService.getUnreadCount(),
-    refetchInterval: 15000, // Background poll every 15 seconds to keep unread badges updated
+    refetchInterval: 30000, // Background poll every 30 seconds
     refetchOnWindowFocus: true,
+    retry: 1,
+    enabled,
   });
 };
 

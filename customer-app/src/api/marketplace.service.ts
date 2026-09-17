@@ -70,6 +70,8 @@ export interface MarketplaceCategorySummary {
   icon: string | null;
   image: string | null;
   sortOrder: number;
+  parentId?: string | null;
+  subcategories?: Category[];
   vendorCount: number;
   serviceCount: number;
 }
@@ -78,6 +80,7 @@ export const MarketplaceService = {
   async getVendors(params?: {
     category?: string;
     categoryId?: string;
+    subcategoryId?: string;
     eventType?: string;
     latitude?: number;
     longitude?: number;
@@ -111,6 +114,7 @@ export const MarketplaceService = {
   async getCategories(params?: {
     eventTypeId?: string;
     search?: string;
+    parentId?: string;
   }): Promise<MarketplaceCategorySummary[]> {
     const res = await apiClient.get<{ success: boolean; data: MarketplaceCategorySummary[] }>(
       '/marketplace/categories',
@@ -121,14 +125,18 @@ export const MarketplaceService = {
 
   async getServices(params?: {
     categoryId?: string;
+    subcategoryId?: string;
     vendorId?: string;
     eventTypeId?: string;
     search?: string;
     city?: string;
+    latitude?: number;
+    longitude?: number;
+    radius?: number;
     pricingType?: string;
     minPrice?: number;
     maxPrice?: number;
-    sortBy?: string;
+    sortBy?: 'nearest' | 'price_asc' | 'price_desc' | 'popular' | 'rating' | 'newest' | string;
     page?: number;
     limit?: number;
   }): Promise<{ pagination: any; services: ServiceItem[] }> {
@@ -139,8 +147,10 @@ export const MarketplaceService = {
     return res.data.data || { pagination: {}, services: [] };
   },
 
-  async getServiceById(id: string): Promise<ServiceItem> {
-    const res = await apiClient.get<{ success: boolean; data: ServiceItem }>(`/marketplace/services/${id}`);
+  async getServiceById(id: string, coords?: { latitude?: number; longitude?: number }): Promise<ServiceItem> {
+    const res = await apiClient.get<{ success: boolean; data: ServiceItem }>(`/marketplace/services/${id}`, {
+      params: coords,
+    });
     return res.data.data;
   },
 

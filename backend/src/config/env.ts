@@ -27,8 +27,8 @@ const envSchema = z.object({
   
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(12),
   
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000), // 15 mins
-  RATE_LIMIT_MAX: z.coerce.number().default(100),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(86400000), // 24 hours (86,400,000 ms)
+  RATE_LIMIT_MAX: z.coerce.number().default(5000),
   
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().default(25),

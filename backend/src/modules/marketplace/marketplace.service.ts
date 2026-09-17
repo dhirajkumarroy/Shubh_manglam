@@ -40,8 +40,8 @@ export class MarketplaceService {
     return this.repo.listServices(query);
   }
 
-  async getServiceById(idOrSlug: string) {
-    const service = await this.repo.getServiceById(idOrSlug);
+  async getServiceById(idOrSlug: string, coords?: { latitude?: number; longitude?: number }) {
+    const service = await this.repo.getServiceById(idOrSlug, coords);
     if (!service) {
       throw new NotFoundError('Service not found or not available');
     }

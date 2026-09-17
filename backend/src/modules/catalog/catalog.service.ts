@@ -75,6 +75,8 @@ export class CatalogService {
       id: s.id,
       vendorId: s.vendorId,
       categoryId: s.categoryId,
+      subcategoryId: s.subcategoryId ?? null,
+      eventTypeId: s.eventTypeId ?? null,
       name: s.name,
       slug: s.slug,
       description: s.description,
@@ -95,6 +97,20 @@ export class CatalogService {
         slug: s.category.slug,
         icon: s.category.icon,
       },
+      subcategory: s.subcategory
+        ? {
+            id: s.subcategory.id,
+            name: s.subcategory.name,
+            slug: s.subcategory.slug,
+          }
+        : null,
+      eventType: s.eventType
+        ? {
+            id: s.eventType.id,
+            name: s.eventType.name,
+            slug: s.eventType.slug,
+          }
+        : null,
       vendor: s.vendor
         ? {
             id: s.vendor.id,
@@ -115,9 +131,8 @@ export class CatalogService {
             publicId: img.publicId,
             sortOrder: img.sortOrder,
             isPrimary: img.isPrimary,
-            createdAt: img.createdAt,
           }))
-        : undefined,
+        : [],
     };
   }
 
@@ -166,7 +181,7 @@ export class CatalogService {
   }
 
   // =========================================================================
-  // Vendor Service Operations
+  // Service Operations
   // =========================================================================
 
   async createService(vendorId: string, dto: CreateServiceDto, userId?: string): Promise<ServiceItemResponse> {
@@ -181,6 +196,29 @@ export class CatalogService {
     });
     if (!category || !category.isActive) {
       throw new BadRequestError('Selected category does not exist or is currently inactive.');
+    }
+
+    // 1.1 Verify subcategory if provided
+    if (dto.subcategoryId) {
+      const subcategory = await prisma.category.findUnique({
+        where: { id: dto.subcategoryId },
+      });
+      if (!subcategory || !subcategory.isActive) {
+        throw new BadRequestError('Selected subcategory does not exist or is currently inactive.');
+      }
+      if (subcategory.parentId !== dto.categoryId) {
+        throw new BadRequestError('Selected subcategory does not belong to the selected category.');
+      }
+    }
+
+    // 1.2 Verify eventType if provided
+    if (dto.eventTypeId) {
+      const eventType = await prisma.eventType.findUnique({
+        where: { id: dto.eventTypeId },
+      });
+      if (!eventType || !eventType.isActive) {
+        throw new BadRequestError('Selected event type does not exist or is currently inactive.');
+      }
     }
 
     // 2. Ensure VendorCategory relation exists (auto-link vendor to category)
@@ -233,6 +271,8 @@ export class CatalogService {
     const where: Prisma.ServiceWhereInput = { vendorId };
 
     if (query.categoryId) where.categoryId = query.categoryId;
+    if (query.subcategoryId) where.subcategoryId = query.subcategoryId;
+    if (query.eventTypeId) where.eventTypeId = query.eventTypeId;
     if (query.pricingType) where.pricingType = query.pricingType;
     if (query.isAvailable !== undefined) where.isAvailable = query.isAvailable;
     if (query.isActive !== undefined) where.isActive = query.isActive;
@@ -289,6 +329,28 @@ export class CatalogService {
         update: {},
         create: { vendorId, categoryId: dto.categoryId },
       });
+    }
+
+    if (dto.subcategoryId) {
+      const targetCatId = dto.categoryId || service.categoryId;
+      const subcategory = await prisma.category.findUnique({
+        where: { id: dto.subcategoryId },
+      });
+      if (!subcategory || !subcategory.isActive) {
+        throw new BadRequestError('Selected subcategory does not exist or is currently inactive.');
+      }
+      if (subcategory.parentId !== targetCatId) {
+        throw new BadRequestError('Selected subcategory does not belong to the selected category.');
+      }
+    }
+
+    if (dto.eventTypeId) {
+      const eventType = await prisma.eventType.findUnique({
+        where: { id: dto.eventTypeId },
+      });
+      if (!eventType || !eventType.isActive) {
+        throw new BadRequestError('Selected event type does not exist or is currently inactive.');
+      }
     }
 
     const updated = await this.repo.updateService(serviceId, {

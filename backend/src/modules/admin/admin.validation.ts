@@ -5,8 +5,16 @@ import { VendorStatus } from '@prisma/client';
 export const userQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().optional(),
   email: z.string().optional(),
   name: z.string().optional(),
+  role: z.enum(['CUSTOMER', 'VENDOR', 'ADMIN']).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED']).optional(),
+  isBlocked: z.preprocess((val) => {
+    if (val === 'true' || val === true) return true;
+    if (val === 'false' || val === false) return false;
+    return undefined;
+  }, z.boolean().optional()),
 });
 
 export const uuidParamSchema = z.object({

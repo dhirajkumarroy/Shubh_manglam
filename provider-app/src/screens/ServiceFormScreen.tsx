@@ -14,7 +14,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { ProviderApiService } from '../services/api';
-import { ServiceCategory } from '../types';
+import { ServiceCategory, EventType } from '../types';
+
+function getEventIcon(slug?: string): string {
+  switch (slug) {
+    case 'birthday': return '🎂';
+    case 'wedding': return '💍';
+    case 'engagement': return '💎';
+    case 'reception': return '🥂';
+    case 'anniversary': return '💖';
+    case 'baby-shower': return '🍼';
+    case 'corporate-event': return '🏢';
+    case 'party': return '🎉';
+    case 'puja': return '🪔';
+    case 'festival': return '🎆';
+    case 'housewarming': return '🏡';
+    default: return '🎊';
+  }
+}
 
 interface ServiceFormScreenProps {
   serviceId?: string;
@@ -37,11 +54,14 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
   onSuccess,
 }) => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
 
   // Form State
+  const [eventTypeId, setEventTypeId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [subcategoryId, setSubcategoryId] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [pricingType, setPricingType] = useState<string>('FIXED');
@@ -57,17 +77,20 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
     const initData = async () => {
       try {
         setLoading(true);
-        const catList = await ProviderApiService.getCategories();
+        const [catList, eventTypeList] = await Promise.all([
+          ProviderApiService.getCategories(),
+          ProviderApiService.getEventTypes(),
+        ]);
         setCategories(catList || []);
-        if (catList?.length > 0 && !categoryId) {
-          setCategoryId(catList[0].id);
-        }
+        setEventTypes(eventTypeList || []);
 
         if (serviceId) {
           const service = await ProviderApiService.getVendorService(serviceId);
           setName(service.name);
           setDescription(service.description || '');
           setCategoryId(service.categoryId);
+          setSubcategoryId(service.subcategoryId || '');
+          setEventTypeId(service.eventTypeId || '');
           setPricingType(service.pricingType);
           if (service.basePrice !== null && service.basePrice !== undefined) {
             setBasePrice(String(service.basePrice));
@@ -88,6 +111,16 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
             setDurationMinutes(String(service.durationMinutes));
           }
           setIsAvailable(service.isAvailable);
+        } else if (catList?.length > 0 && !categoryId) {
+          const firstCat = catList[0];
+          setCategoryId(firstCat.id);
+          if (firstCat.subcategories && firstCat.subcategories.length > 0) {
+            setSubcategoryId(firstCat.subcategories[0].id);
+            setName(firstCat.subcategories[0].name);
+            if (firstCat.subcategories[0].description) {
+              setDescription(firstCat.subcategories[0].description);
+            }
+          }
         }
       } catch (err: any) {
         Alert.alert('Error', err.message || 'Failed to initialize form.');
@@ -99,6 +132,55 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
     initData();
   }, [serviceId]);
 
+  const handleSelectEventType = (id: string) => {
+    setEventTypeId(id);
+    const et = eventTypes.find((e) => e.id === id);
+    if (et?.slug === 'birthday') {
+      const decorCat = categories.find(
+        (c) => c.slug === 'decoration' || c.name.toLowerCase().includes('decoration')
+      );
+      if (decorCat) {
+        setCategoryId(decorCat.id);
+        const balloonSub = decorCat.subcategories?.find(
+          (s) => s.slug.includes('balloon') || s.name.toLowerCase().includes('balloon')
+        );
+        if (balloonSub) {
+          setSubcategoryId(balloonSub.id);
+          setName('Birthday Theme & Balloon Decoration');
+          setDescription(
+            'Customized birthday balloon backdrop, thematic arch, LED neon lighting, cake table decor, and celebration props setup.'
+          );
+        }
+      }
+    }
+  };
+
+  const handleSelectCategory = (catId: string) => {
+    setCategoryId(catId);
+    const cat = categories.find((c) => c.id === catId);
+    const subcats = cat?.subcategories || [];
+    if (subcats.length > 0) {
+      setSubcategoryId(subcats[0].id);
+      setName(subcats[0].name);
+      if (subcats[0].description) {
+        setDescription(subcats[0].description);
+      }
+    } else {
+      setSubcategoryId('');
+    }
+  };
+
+  const handleSelectSubcategory = (sub: ServiceCategory) => {
+    setSubcategoryId(sub.id);
+    setName(sub.name);
+    if (sub.description) {
+      setDescription(sub.description);
+    }
+  };
+
+  const currentCategory = categories.find((c) => c.id === categoryId);
+  const availableSubcategories = currentCategory?.subcategories || [];
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       Alert.alert('Validation Error', 'Please enter a service name.');
@@ -108,10 +190,16 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
       Alert.alert('Validation Error', 'Please select a platform category.');
       return;
     }
+    if (availableSubcategories.length > 0 && !subcategoryId) {
+      Alert.alert('Validation Error', 'Please select a subcategory for this celebration service.');
+      return;
+    }
 
     const payload: any = {
       name: name.trim(),
       categoryId,
+      subcategoryId: subcategoryId || undefined,
+      eventTypeId: eventTypeId || undefined,
       description: description.trim() || undefined,
       pricingType,
       isAvailable,
@@ -162,73 +250,161 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading service details...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
           <Text style={styles.backBtnText}>← Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {serviceId ? 'Edit Service' : 'New Service'}
+          {serviceId ? 'Edit Service' : 'Add Celebration Service'}
         </Text>
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
           onPress={handleSubmit}
           disabled={saving}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save'}</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.saveBtnText}>Save</Text>
+          )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Service Name */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Service Name *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Royal Shahi Buffet Catering"
-            value={name}
-            onChangeText={setName}
-          />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading service catalog...</Text>
         </View>
-
-        {/* Dynamic Category Selector */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Platform Category * (Database-driven)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {categories.map((cat) => (
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Celebration Event Type Selector */}
+          <View style={styles.inputGroup}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.label}>Celebration Event</Text>
+              <Text style={styles.optionalBadge}>Optional / Universal</Text>
+            </View>
+            <Text style={styles.helperText}>
+              Tag for a specific event or select All Celebrations:
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
               <TouchableOpacity
-                key={cat.id}
                 style={[
                   styles.categoryPill,
-                  categoryId === cat.id && styles.categoryPillActive,
+                  !eventTypeId && styles.categoryPillActive,
                 ]}
-                onPress={() => setCategoryId(cat.id)}
+                onPress={() => handleSelectEventType('')}
               >
                 <Text
                   style={[
                     styles.categoryPillText,
-                    categoryId === cat.id && styles.categoryPillTextActive,
+                    !eventTypeId && styles.categoryPillTextActive,
                   ]}
                 >
-                  {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+                  ✨ All Celebrations
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+              {eventTypes.map((et) => {
+                const isSelected = eventTypeId === et.id;
+                return (
+                  <TouchableOpacity
+                    key={et.id}
+                    style={[
+                      styles.categoryPill,
+                      isSelected && styles.categoryPillActive,
+                    ]}
+                    onPress={() => handleSelectEventType(et.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryPillText,
+                        isSelected && styles.categoryPillTextActive,
+                      ]}
+                    >
+                      {getEventIcon(et.slug)} {et.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Dynamic Category Selector */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Celebration Category *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryPill,
+                    categoryId === cat.id && styles.categoryPillActive,
+                  ]}
+                  onPress={() => handleSelectCategory(cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryPillText,
+                      categoryId === cat.id && styles.categoryPillTextActive,
+                    ]}
+                  >
+                    {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Subcategory Selector (Strict Taxonomy Enforcement) */}
+          {availableSubcategories.length > 0 && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Select Subcategory * ({currentCategory?.name})
+              </Text>
+              <Text style={styles.helperText}>
+                Choose the exact service item from the official marketplace taxonomy:
+              </Text>
+              <View style={styles.subcategoryGrid}>
+                {availableSubcategories.map((sub) => {
+                  const isSelected = subcategoryId === sub.id;
+                  return (
+                    <TouchableOpacity
+                      key={sub.id}
+                      style={[
+                        styles.subcategoryPill,
+                        isSelected && styles.subcategoryPillActive,
+                      ]}
+                      onPress={() => handleSelectSubcategory(sub)}
+                    >
+                      <Text
+                        style={[
+                          styles.subcategoryPillText,
+                          isSelected && styles.subcategoryPillTextActive,
+                        ]}
+                      >
+                        {isSelected ? '✓ ' : ''}{sub.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Service Title */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Service Display Title *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Royal Stage Decoration"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
 
         {/* Pricing Type Selector */}
         <View style={styles.inputGroup}>
@@ -357,6 +533,7 @@ export const ServiceFormScreen: React.FC<ServiceFormScreenProps> = ({
           />
         </View>
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -426,6 +603,21 @@ const styles = StyleSheet.create({
   },
   flex1: {
     flex: 1,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  optionalBadge: {
+    fontSize: 11,
+    color: '#6B7280',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontWeight: '500',
   },
   label: {
     fontSize: 14,
@@ -515,6 +707,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 2,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  subcategoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  subcategoryPill: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+  },
+  subcategoryPillActive: {
+    backgroundColor: '#FEF2F2',
+    borderColor: colors.primary,
+  },
+  subcategoryPillText: {
+    fontSize: 12,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  subcategoryPillTextActive: {
+    color: colors.primary,
+    fontWeight: 'bold',
   },
 });
 

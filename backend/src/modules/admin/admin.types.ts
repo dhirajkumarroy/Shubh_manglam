@@ -16,6 +16,12 @@ export type ReviewDocumentDto = z.infer<typeof reviewDocumentSchema>;
 
 export interface AdminDashboardStats {
   totalUsers: number;
+  totalCustomers: number;
+  totalProviders: number;
+  totalAdmins: number;
+  totalActiveUsers: number;
+  totalBlockedUsers: number;
+  totalVerifiedUsers: number;
   totalVendors: number;
   totalApprovedVendors: number;
   totalPendingVendors: number;
@@ -24,4 +30,5 @@ export interface AdminDashboardStats {
   totalSuspendedVendors: number;
   totalEventTypes: number;
   totalCategories: number;
+  recentUsers: any[];
 }

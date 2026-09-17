@@ -31,15 +31,31 @@ export const HomeScreen: React.FC = () => {
   const { user, loading: authLoading } = useAppSelector((state) => state.auth);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    city?: string;
+    latitude?: number;
+    longitude?: number;
+    label?: string;
+  } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // React Query hooks for 100% database-driven marketplace data
   const { data: eventTypes = [] } = useEventTypes();
   const { data: customerEvents = [] } = useCustomerEvents();
   const { data: categories = [] } = useMarketplaceCategories();
-  const { data: vendorData } = useMarketplaceVendors({ limit: 6 });
+  const { data: vendorData } = useMarketplaceVendors({
+    city: selectedLocation?.city,
+    latitude: selectedLocation?.latitude,
+    longitude: selectedLocation?.longitude,
+    sort: selectedLocation?.latitude ? 'nearest' : 'rating',
+    limit: 6,
+  });
   const { data: serviceData, isLoading: servicesLoading } = useMarketplaceServices({
     categoryId: selectedCategoryId || undefined,
+    city: selectedLocation?.city,
+    latitude: selectedLocation?.latitude,
+    longitude: selectedLocation?.longitude,
+    sortBy: selectedLocation?.latitude ? 'nearest' : 'newest',
     limit: 10,
   });
   const { data: packageData } = useMarketplacePackages({ limit: 4 });
@@ -93,11 +109,24 @@ export const HomeScreen: React.FC = () => {
               <Text style={styles.name}>{user?.name || 'Celebration Host'}</Text>
             </View>
             <TouchableOpacity
-              style={styles.locationPill}
-              onPress={() => navigation.navigate('LocationSelectionScreen')}
+              style={[styles.locationPill, selectedLocation ? styles.locationPillActive : null]}
+              onPress={() =>
+                navigation.navigate('LocationSelectionScreen', {
+                  onSelectLocation: (loc: any) => {
+                    setSelectedLocation({
+                      city: loc.city,
+                      latitude: loc.latitude,
+                      longitude: loc.longitude,
+                      label: loc.city || loc.label || 'Selected Venue',
+                    });
+                  },
+                })
+              }
             >
               <Text style={styles.locationPillIcon}>📍</Text>
-              <Text style={styles.locationPillText}>Select Venue</Text>
+              <Text style={[styles.locationPillText, selectedLocation ? styles.locationPillTextActive : null]}>
+                {selectedLocation?.city || 'Select Venue'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -125,6 +154,24 @@ export const HomeScreen: React.FC = () => {
             </View>
             <Text style={styles.ctaHeroIllustration}>🎪</Text>
           </View>
+        </View>
+
+        {/* 1.5 Quick Inquiries Shortcut Banner */}
+        <View style={styles.inquiriesBannerWrap}>
+          <TouchableOpacity
+            style={styles.inquiriesBannerBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('CustomerInquiriesScreen')}
+          >
+            <View style={styles.inquiriesBannerLeft}>
+              <Text style={styles.inquiriesBannerIcon}>📋</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inquiriesBannerTitle}>My Celebration Inquiries</Text>
+                <Text style={styles.inquiriesBannerSub}>Check provider responses, accepted dates & quotes</Text>
+              </View>
+            </View>
+            <Text style={styles.inquiriesBannerArrow}>→</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 2. Active Celebration Card (if exists) */}
@@ -219,7 +266,15 @@ export const HomeScreen: React.FC = () => {
           <View style={styles.vendorsSection}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Nearby Verified Providers</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('VendorDiscoveryScreen')}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('VendorDiscoveryScreen', {
+                    city: selectedLocation?.city,
+                    latitude: selectedLocation?.latitude,
+                    longitude: selectedLocation?.longitude,
+                  })
+                }
+              >
                 <Text style={styles.seeAllText}>View All →</Text>
               </TouchableOpacity>
             </View>
@@ -230,7 +285,13 @@ export const HomeScreen: React.FC = () => {
                   key={vendor.id}
                   style={styles.vendorMiniCard}
                   activeOpacity={0.8}
-                  onPress={() => navigation.navigate('VendorDetailsScreen', { vendorId: vendor.id })}
+                  onPress={() =>
+                    navigation.navigate('VendorDetailsScreen', {
+                      vendorId: vendor.id,
+                      latitude: selectedLocation?.latitude,
+                      longitude: selectedLocation?.longitude,
+                    })
+                  }
                 >
                   {vendor.coverImage ? (
                     <Image source={{ uri: vendor.coverImage }} style={styles.vendorMiniCover} resizeMode="cover" />
@@ -327,7 +388,13 @@ export const HomeScreen: React.FC = () => {
                   key={svc.id}
                   style={styles.serviceCard}
                   activeOpacity={0.8}
-                  onPress={() => navigation.navigate('ServiceDetailsScreen', { serviceId: svc.id })}
+                  onPress={() =>
+                    navigation.navigate('ServiceDetailsScreen', {
+                      serviceId: svc.id,
+                      latitude: selectedLocation?.latitude,
+                      longitude: selectedLocation?.longitude,
+                    })
+                  }
                 >
                   {svc.primaryImage ? (
                     <Image source={{ uri: svc.primaryImage }} style={styles.serviceCover} resizeMode="cover" />
@@ -347,9 +414,16 @@ export const HomeScreen: React.FC = () => {
                     </Text>
 
                     {svc.vendor && (
-                      <Text style={styles.vendorName} numberOfLines={1}>
-                        🏢 {svc.vendor.businessName} • {svc.vendor.city}
-                      </Text>
+                      <View style={styles.serviceVendorMetaRow}>
+                        <Text style={styles.vendorName} numberOfLines={1}>
+                          🏢 {svc.vendor.businessName} • {svc.vendor.city}
+                        </Text>
+                        {svc.distanceKm !== null && svc.distanceKm !== undefined && (
+                          <Text style={styles.serviceDistanceTag}>
+                            📍 {svc.distanceKm} km away
+                          </Text>
+                        )}
+                      </View>
                     )}
 
                     <View style={styles.servicePricingRow}>
@@ -498,6 +572,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  locationPillActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  locationPillTextActive: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
   subtext: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
@@ -561,6 +643,51 @@ const styles = StyleSheet.create({
   },
   ctaHeroIllustration: {
     fontSize: 54,
+  },
+  inquiriesBannerWrap: {
+    paddingHorizontal: 20,
+    marginTop: 12,
+  },
+  inquiriesBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FED7AA',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: '#EA580C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  inquiriesBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  inquiriesBannerIcon: {
+    fontSize: 24,
+  },
+  inquiriesBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#9A3412',
+  },
+  inquiriesBannerSub: {
+    fontSize: 11,
+    color: '#78716C',
+    marginTop: 2,
+  },
+  inquiriesBannerArrow: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#EA580C',
+    marginLeft: 8,
   },
   activeEventSection: {
     marginTop: 24,
@@ -903,7 +1030,23 @@ const styles = StyleSheet.create({
   vendorName: {
     fontSize: 13,
     color: '#6B7280',
+    flex: 1,
+  },
+  serviceVendorMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 10,
+    gap: 6,
+  },
+  serviceDistanceTag: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   servicePricingRow: {
     flexDirection: 'row',

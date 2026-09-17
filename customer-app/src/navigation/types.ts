@@ -37,15 +37,19 @@ export type HomeStackParamList = {
     vendor?: any;
     eventId?: string;
   };
+  CustomerInquiriesScreen: undefined;
 };
 
 export type ProfileStackParamList = {
   ProfileScreen: undefined;
   ChangePassword: undefined;
+  CustomerInquiriesScreen: undefined;
 };
 
 export type AppTabParamList = {
   HomeTab: undefined;
+  InquiriesTab: undefined;
+  EventsTab: undefined;
   NotificationTab: undefined;
   ProfileTab: undefined;
 };

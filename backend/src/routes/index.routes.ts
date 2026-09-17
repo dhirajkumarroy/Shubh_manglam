@@ -20,6 +20,7 @@ import {
 } from '../modules/events/event.routes';
 import addressRouter from '../modules/addresses/address.routes';
 import marketplaceRouter from '../modules/marketplace/marketplace.routes';
+import bookingRouter from '../modules/bookings/booking.routes';
 
 const router = Router();
 
@@ -69,6 +70,7 @@ router.use('/vendor', vendorRouter);
 router.use('/vendor', vendorCatalogRouter);
 router.use('/services', publicServicesRouter);
 router.use('/packages', publicPackagesRouter);
+router.use('/bookings', bookingRouter);
 router.use('/uploads', uploadRouter);
 
 export default router;

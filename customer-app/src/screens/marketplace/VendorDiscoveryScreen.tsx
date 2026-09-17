@@ -9,14 +9,17 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import colors from '../../theme/colors';
 import {
   useMarketplaceVendors,
   useMarketplaceCategories,
 } from '../../hooks/useEventPlanning';
+import { openDialer, openWhatsApp } from '../../utils/contact';
 
 export const VendorDiscoveryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -24,6 +27,8 @@ export const VendorDiscoveryScreen: React.FC = () => {
 
   const initialCategoryId = route.params?.categoryId;
   const initialCategoryName = route.params?.categoryName;
+  const initialSubcategoryId = route.params?.subcategoryId;
+  const initialSubcategoryName = route.params?.subcategoryName;
   const city = route.params?.city;
   const latitude = route.params?.latitude;
   const longitude = route.params?.longitude;
@@ -32,9 +37,47 @@ export const VendorDiscoveryScreen: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [selectedCatId, setSelectedCatId] = useState<string | undefined>(initialCategoryId);
+  const [selectedSubcatId, setSelectedSubcatId] = useState<string | undefined>(initialSubcategoryId);
   const [sort, setSort] = useState<'nearest' | 'rating' | 'newest'>('nearest');
 
+  const [activeCity, setActiveCity] = useState<string | undefined>(city);
+  const [activeLatitude, setActiveLatitude] = useState<number | undefined>(latitude);
+  const [activeLongitude, setActiveLongitude] = useState<number | undefined>(longitude);
+  const [detectingGps, setDetectingGps] = useState(false);
+
+  const handleDetectGps = async () => {
+    try {
+      setDetectingGps(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission',
+          'Please allow location permission to discover celebration providers near you.'
+        );
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const lat = loc.coords.latitude;
+      const lon = loc.coords.longitude;
+      setActiveLatitude(lat);
+      setActiveLongitude(lon);
+      setSort('nearest');
+
+      const reverse = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+      const detectedCity = reverse[0]?.city || reverse[0]?.district || 'Near You';
+      setActiveCity(detectedCity);
+    } catch (err) {
+      console.error('GPS detection error:', err);
+      Alert.alert('GPS Error', 'Failed to detect current location.');
+    } finally {
+      setDetectingGps(false);
+    }
+  };
+
   const { data: categories = [] } = useMarketplaceCategories();
+  const currentCategory = categories.find((c) => c.id === selectedCatId);
+
   const {
     data: vendorData,
     isLoading,
@@ -42,10 +85,11 @@ export const VendorDiscoveryScreen: React.FC = () => {
     refetch,
   } = useMarketplaceVendors({
     categoryId: selectedCatId,
+    subcategoryId: selectedSubcatId,
     eventType: eventTypeId,
-    city,
-    latitude,
-    longitude,
+    city: activeCity,
+    latitude: activeLatitude,
+    longitude: activeLongitude,
     search: search.trim() || undefined,
     sort,
   });
@@ -56,8 +100,8 @@ export const VendorDiscoveryScreen: React.FC = () => {
     navigation.navigate('VendorDetailsScreen', {
       vendorId: vendor.id,
       vendorName: vendor.businessName,
-      latitude,
-      longitude,
+      latitude: activeLatitude,
+      longitude: activeLongitude,
       eventId,
     });
   };
@@ -72,13 +116,13 @@ export const VendorDiscoveryScreen: React.FC = () => {
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>Verified Providers</Text>
           <Text style={styles.subTitle}>
-            {city ? `Near ${city}` : 'Marketplace Providers'}
+            {activeCity ? `Near ${activeCity}` : 'Marketplace Providers'}
             {initialCategoryName ? ` • ${initialCategoryName}` : ''}
           </Text>
         </View>
       </View>
 
-      {/* Search Input */}
+      {/* Search & Location Section */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>🔍</Text>
@@ -92,6 +136,42 @@ export const VendorDiscoveryScreen: React.FC = () => {
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
               <Text style={styles.clearIcon}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Quick GPS Location Bar */}
+        <View style={styles.locationBar}>
+          <TouchableOpacity
+            style={[styles.gpsBtn, activeLatitude ? styles.gpsBtnActive : null]}
+            activeOpacity={0.8}
+            onPress={handleDetectGps}
+            disabled={detectingGps}
+          >
+            {detectingGps ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text style={styles.gpsBtnIcon}>📍</Text>
+            )}
+            <Text style={[styles.gpsBtnText, activeLatitude ? styles.gpsBtnTextActive : null]}>
+              {detectingGps
+                ? 'Detecting Location...'
+                : activeCity
+                ? `Near ${activeCity} (GPS Active)`
+                : 'Detect Nearby Providers (GPS)'}
+            </Text>
+          </TouchableOpacity>
+
+          {activeLatitude && (
+            <TouchableOpacity
+              style={styles.clearGpsBtn}
+              onPress={() => {
+                setActiveLatitude(undefined);
+                setActiveLongitude(undefined);
+                setActiveCity(undefined);
+              }}
+            >
+              <Text style={styles.clearGpsText}>Reset</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -120,7 +200,10 @@ export const VendorDiscoveryScreen: React.FC = () => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catChipsScroll}>
           <TouchableOpacity
             style={[styles.catChip, selectedCatId === undefined && styles.catChipActive]}
-            onPress={() => setSelectedCatId(undefined)}
+            onPress={() => {
+              setSelectedCatId(undefined);
+              setSelectedSubcatId(undefined);
+            }}
           >
             <Text style={[styles.catChipText, selectedCatId === undefined && styles.catChipTextActive]}>
               All Categories
@@ -131,7 +214,15 @@ export const VendorDiscoveryScreen: React.FC = () => {
             <TouchableOpacity
               key={cat.id}
               style={[styles.catChip, selectedCatId === cat.id && styles.catChipActive]}
-              onPress={() => setSelectedCatId(selectedCatId === cat.id ? undefined : cat.id)}
+              onPress={() => {
+                if (selectedCatId === cat.id) {
+                  setSelectedCatId(undefined);
+                  setSelectedSubcatId(undefined);
+                } else {
+                  setSelectedCatId(cat.id);
+                  setSelectedSubcatId(undefined);
+                }
+              }}
             >
               <Text style={[styles.catChipText, selectedCatId === cat.id && styles.catChipTextActive]}>
                 {cat.icon ? `${cat.icon} ` : ''}
@@ -140,6 +231,31 @@ export const VendorDiscoveryScreen: React.FC = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Dynamic Subcategory Chips if active category has subcategories */}
+        {currentCategory?.subcategories && currentCategory.subcategories.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subcatChipsScroll}>
+            <TouchableOpacity
+              style={[styles.subcatChip, selectedSubcatId === undefined && styles.subcatChipActive]}
+              onPress={() => setSelectedSubcatId(undefined)}
+            >
+              <Text style={[styles.subcatChipText, selectedSubcatId === undefined && styles.subcatChipTextActive]}>
+                All {currentCategory.name}
+              </Text>
+            </TouchableOpacity>
+            {currentCategory.subcategories.map((sub: any) => (
+              <TouchableOpacity
+                key={sub.id}
+                style={[styles.subcatChip, selectedSubcatId === sub.id && styles.subcatChipActive]}
+                onPress={() => setSelectedSubcatId(selectedSubcatId === sub.id ? undefined : sub.id)}
+              >
+                <Text style={[styles.subcatChipText, selectedSubcatId === sub.id && styles.subcatChipTextActive]}>
+                  {sub.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {/* Vendors List */}
@@ -155,7 +271,7 @@ export const VendorDiscoveryScreen: React.FC = () => {
           <Text style={styles.emptySub}>
             Try clearing filters, selecting another category, or broadening your search location.
           </Text>
-          <TouchableOpacity style={styles.resetBtn} onPress={() => { setSelectedCatId(undefined); setSearch(''); }}>
+          <TouchableOpacity style={styles.resetBtn} onPress={() => { setSelectedCatId(undefined); setSelectedSubcatId(undefined); setSearch(''); }}>
             <Text style={styles.resetBtnText}>Clear All Filters</Text>
           </TouchableOpacity>
         </View>
@@ -233,6 +349,34 @@ export const VendorDiscoveryScreen: React.FC = () => {
                         <Text style={styles.categoryPillMoreText}>+{vendor.categories.length - 3}</Text>
                       </View>
                     )}
+                  </View>
+
+                  {/* Vendor Direct Contact Actions */}
+                  <View style={styles.cardActionsRow}>
+                    <TouchableOpacity
+                      style={styles.cardCallBtn}
+                      activeOpacity={0.8}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openDialer(vendor.phone);
+                      }}
+                    >
+                      <Text style={styles.cardCallBtnText}>📞 Call</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.cardWhatsAppBtn}
+                      activeOpacity={0.8}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openWhatsApp(
+                          vendor.phone,
+                          `Hello ${vendor.businessName}, I found your profile on Shubh Mangalam and would like to inquire about your celebration services.`
+                        );
+                      }}
+                    >
+                      <Text style={styles.cardWhatsAppBtnText}>💬 WhatsApp</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -370,6 +514,31 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   catChipTextActive: {
+    color: '#FFFFFF',
+  },
+  subcatChipsScroll: {
+    gap: 6,
+    paddingVertical: 4,
+    marginTop: 4,
+  },
+  subcatChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  subcatChipActive: {
+    backgroundColor: '#374151',
+    borderColor: '#374151',
+  },
+  subcatChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  subcatChipTextActive: {
     color: '#FFFFFF',
   },
   centerBox: {
@@ -541,6 +710,89 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#6B7280',
+  },
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  gpsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  gpsBtnActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  gpsBtnIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  gpsBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  gpsBtnTextActive: {
+    color: '#065F46',
+    fontWeight: '700',
+  },
+  clearGpsBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  clearGpsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  cardActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  cardCallBtn: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cardCallBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  cardWhatsAppBtn: {
+    flex: 1,
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  cardWhatsAppBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
   },
 });
 

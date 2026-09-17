@@ -6,6 +6,8 @@ import { PricingType } from '@prisma/client';
 
 export interface CreateServiceDto {
   categoryId: string;
+  subcategoryId?: string | null;
+  eventTypeId?: string | null;
   name: string;
   description?: string;
   pricingType: PricingType;
@@ -21,6 +23,8 @@ export interface CreateServiceDto {
 
 export interface UpdateServiceDto {
   categoryId?: string;
+  subcategoryId?: string | null;
+  eventTypeId?: string | null;
   name?: string;
   description?: string;
   pricingType?: PricingType;
@@ -39,6 +43,8 @@ export interface ServiceQueryDto {
   limit?: number;
   search?: string;
   categoryId?: string;
+  subcategoryId?: string;
+  eventTypeId?: string;
   vendorId?: string;
   pricingType?: PricingType;
   minPrice?: number;
@@ -46,6 +52,7 @@ export interface ServiceQueryDto {
   isAvailable?: boolean;
   isActive?: boolean;
   city?: string;
+  state?: string;
   sortBy?: 'price_asc' | 'price_desc' | 'name_asc' | 'newest';
 }
 
@@ -75,6 +82,8 @@ export interface ServiceItemResponse {
   id: string;
   vendorId: string;
   categoryId: string;
+  subcategoryId?: string | null;
+  eventTypeId?: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -95,6 +104,16 @@ export interface ServiceItemResponse {
     slug: string;
     icon: string | null;
   };
+  subcategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  eventType?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   vendor?: {
     id: string;
     businessName: string;

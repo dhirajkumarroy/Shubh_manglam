@@ -33,6 +33,16 @@ export const CategoryDiscoveryScreen: React.FC = () => {
     });
   };
 
+  const handleSelectSubcategory = (cat: any, sub: any) => {
+    navigation.navigate('VendorDiscoveryScreen', {
+      categoryId: cat.id,
+      categoryName: cat.name,
+      subcategoryId: sub.id,
+      subcategoryName: sub.name,
+      eventId,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -80,34 +90,61 @@ export const CategoryDiscoveryScreen: React.FC = () => {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.grid}>
             {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={styles.card}
-                activeOpacity={0.7}
-                onPress={() => handleSelectCategory(cat)}
-              >
-                <View style={styles.iconBox}>
-                  <Text style={styles.iconText}>{cat.icon || '🎪'}</Text>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{cat.name}</Text>
-                  {cat.description && (
-                    <Text style={styles.cardDesc} numberOfLines={2}>
-                      {cat.description}
-                    </Text>
-                  )}
-                  <View style={styles.metaRow}>
-                    <Text style={styles.metaText}>
-                      🏢 {cat.vendorCount} Vendor{cat.vendorCount !== 1 ? 's' : ''}
-                    </Text>
-                    <Text style={styles.metaTextDot}>•</Text>
-                    <Text style={styles.metaText}>
-                      📦 {cat.serviceCount} Service{cat.serviceCount !== 1 ? 's' : ''}
-                    </Text>
+              <View key={cat.id} style={styles.cardContainer}>
+                <TouchableOpacity
+                  style={styles.card}
+                  activeOpacity={0.7}
+                  onPress={() => handleSelectCategory(cat)}
+                >
+                  <View style={styles.iconBox}>
+                    <Text style={styles.iconText}>{cat.icon || '🎪'}</Text>
                   </View>
-                </View>
-                <Text style={styles.cardArrow}>›</Text>
-              </TouchableOpacity>
+                  <View style={styles.cardBody}>
+                    <Text style={styles.cardTitle}>{cat.name}</Text>
+                    {cat.description && (
+                      <Text style={styles.cardDesc} numberOfLines={2}>
+                        {cat.description}
+                      </Text>
+                    )}
+                    <View style={styles.metaRow}>
+                      <Text style={styles.metaText}>
+                        🏢 {cat.vendorCount} Vendor{cat.vendorCount !== 1 ? 's' : ''}
+                      </Text>
+                      <Text style={styles.metaTextDot}>•</Text>
+                      <Text style={styles.metaText}>
+                        📦 {cat.serviceCount} Service{cat.serviceCount !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.cardArrow}>›</Text>
+                </TouchableOpacity>
+
+                {/* Subcategories chips if present */}
+                {cat.subcategories && cat.subcategories.length > 0 && (
+                  <View style={styles.subcatSection}>
+                    <Text style={styles.subcatLabel}>Subcategories:</Text>
+                    <View style={styles.subcatChipGrid}>
+                      {cat.subcategories.slice(0, 5).map((sub: any) => (
+                        <TouchableOpacity
+                          key={sub.id}
+                          style={styles.subcatChip}
+                          onPress={() => handleSelectSubcategory(cat, sub)}
+                        >
+                          <Text style={styles.subcatChipText}>{sub.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                      {cat.subcategories.length > 5 && (
+                        <TouchableOpacity
+                          style={styles.subcatChipMore}
+                          onPress={() => handleSelectCategory(cat)}
+                        >
+                          <Text style={styles.subcatChipMoreText}>+{cat.subcategories.length - 5} more</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                )}
+              </View>
             ))}
           </View>
         </ScrollView>
@@ -221,14 +258,17 @@ const styles = StyleSheet.create({
   grid: {
     gap: 12,
   },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardContainer: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
   },
   iconBox: {
     width: 48,
@@ -276,6 +316,52 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  subcatSection: {
+    backgroundColor: '#F9FAFB',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  subcatLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  subcatChipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  subcatChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  subcatChipText: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  subcatChipMore: {
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  subcatChipMoreText: {
+    fontSize: 11,
+    color: '#4F46E5',
+    fontWeight: '600',
   },
 });
 

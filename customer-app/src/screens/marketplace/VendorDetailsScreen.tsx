@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import { useVendorDetails } from '../../hooks/useEventPlanning';
+import { openDialer, openWhatsApp } from '../../utils/contact';
+import { InquiryModal } from '../../components/InquiryModal';
 
 export const VendorDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -22,6 +24,7 @@ export const VendorDetailsScreen: React.FC = () => {
   const eventId = route.params?.eventId;
 
   const [activeTab, setActiveTab] = useState<'services' | 'packages' | 'reviews' | 'about'>('services');
+  const [inquiryModalVisible, setInquiryModalVisible] = useState<boolean>(false);
 
   const { data: vendor, isLoading, refetch } = useVendorDetails(
     vendorId,
@@ -124,6 +127,30 @@ export const VendorDetailsScreen: React.FC = () => {
                   </Text>
                 </View>
               ))}
+            </View>
+
+            {/* Quick Hero Contact Row */}
+            <View style={styles.heroContactRow}>
+              <TouchableOpacity
+                style={styles.heroCallBtn}
+                activeOpacity={0.8}
+                onPress={() => openDialer(vendor.phone)}
+              >
+                <Text style={styles.heroCallBtnText}>📞 {vendor.phone}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.heroWhatsAppBtn}
+                activeOpacity={0.8}
+                onPress={() =>
+                  openWhatsApp(
+                    vendor.phone,
+                    `Hello ${vendor.businessName}, I found your profile on Shubh Mangalam and would like to inquire about your celebration services.`
+                  )
+                }
+              >
+                <Text style={styles.heroWhatsAppBtnText}>💬 WhatsApp Chat</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -325,7 +352,11 @@ export const VendorDetailsScreen: React.FC = () => {
               </View>
               <View style={styles.aboutRow}>
                 <Text style={styles.aboutLabel}>Contact Phone:</Text>
-                <Text style={styles.aboutVal}>{vendor.phone}</Text>
+                <TouchableOpacity onPress={() => openDialer(vendor.phone)}>
+                  <Text style={[styles.aboutVal, { color: colors.primary, fontWeight: '700' }]}>
+                    {vendor.phone} 📞
+                  </Text>
+                </TouchableOpacity>
               </View>
               {vendor.email && (
                 <View style={styles.aboutRow}>
@@ -337,6 +368,47 @@ export const VendorDetailsScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* Sticky Bottom Contact & Inquiry Bar */}
+      <View style={styles.bottomContactBar}>
+        <TouchableOpacity
+          style={styles.stickyInquiryBtn}
+          activeOpacity={0.85}
+          onPress={() => setInquiryModalVisible(true)}
+        >
+          <Text style={styles.stickyInquiryBtnText}>📋 Send Inquiry</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.stickyCallBtn}
+          activeOpacity={0.8}
+          onPress={() => openDialer(vendor.phone)}
+        >
+          <Text style={styles.stickyCallBtnText}>📞 Call</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.stickyWhatsAppBtn}
+          activeOpacity={0.8}
+          onPress={() =>
+            openWhatsApp(
+              vendor.phone,
+              `Hello ${vendor.businessName}, I found your profile on Shubh Mangalam and would like to inquire about your celebration services.`
+            )
+          }
+        >
+          <Text style={styles.stickyWhatsAppBtnText}>💬 WhatsApp</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Inquiry Modal */}
+      <InquiryModal
+        visible={inquiryModalVisible}
+        onClose={() => setInquiryModalVisible(false)}
+        vendorId={vendor.id}
+        vendorName={vendor.businessName}
+        onSuccess={() => navigation.navigate('CustomerInquiriesScreen')}
+      />
     </SafeAreaView>
   );
 };
@@ -415,7 +487,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
   profileHero: {
     backgroundColor: '#FFFFFF',
@@ -786,6 +858,118 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     maxWidth: '65%',
     textAlign: 'right',
+  },
+  heroContactRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  heroCallBtn: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  heroCallBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  heroWhatsAppBtn: {
+    flex: 1,
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  heroWhatsAppBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  bottomContactBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
+    flexDirection: 'row',
+    gap: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  stickyInquiryBtn: {
+    flex: 1.3,
+    backgroundColor: colors.primary,
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  stickyInquiryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  stickyCallBtn: {
+    flex: 0.8,
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  stickyCallBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  stickyWhatsAppBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    backgroundColor: '#25D366',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  stickyWhatsAppBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });
 

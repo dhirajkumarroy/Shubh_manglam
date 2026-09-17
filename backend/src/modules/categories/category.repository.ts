@@ -4,17 +4,39 @@ import { Prisma } from '@prisma/client';
 
 export class CategoryRepository {
   /**
-   * Lists all active categories for the public marketplace and provider onboarding.
+   * Lists all active root categories with their active subcategories.
    */
   async listActiveCategories() {
     return prisma.category.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        parentId: null,
+      },
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        subcategories: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+  }
+
+  /**
+   * Lists subcategories for a specific parent category.
+   */
+  async listSubcategories(parentId: string) {
+    return prisma.category.findMany({
+      where: {
+        parentId,
+        isActive: true,
+      },
       orderBy: { sortOrder: 'asc' },
     });
   }
 
   /**
-   * Lists categories for Admin with pagination, search, and filtering.
+   * Lists categories for Admin with pagination, search, hierarchy, and filtering.
    */
   async listAllCategories(query: CategoryQueryDto) {
     const page = Math.max(1, query.page || 1);
@@ -31,6 +53,10 @@ export class CategoryRepository {
       ];
     }
 
+    if (query.parentId !== undefined) {
+      where.parentId = query.parentId;
+    }
+
     if (query.isActive !== undefined) {
       where.isActive = query.isActive;
     }
@@ -43,10 +69,28 @@ export class CategoryRepository {
         take: limit,
         orderBy: { sortOrder: 'asc' },
         include: {
+          parent: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          subcategories: {
+            orderBy: { sortOrder: 'asc' },
+            include: {
+              _count: {
+                select: {
+                  subcategoryServices: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               vendorCategories: true,
               services: true,
+              subcategories: true,
             },
           },
         },
@@ -63,10 +107,15 @@ export class CategoryRepository {
     return prisma.category.findUnique({
       where: { id },
       include: {
+        parent: true,
+        subcategories: {
+          orderBy: { sortOrder: 'asc' },
+        },
         _count: {
           select: {
             vendorCategories: true,
             services: true,
+            subcategories: true,
           },
         },
       },
@@ -79,15 +128,23 @@ export class CategoryRepository {
   async findBySlug(slug: string) {
     return prisma.category.findUnique({
       where: { slug },
+      include: {
+        parent: true,
+        subcategories: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
     });
   }
 
   /**
-   * Creates a new category.
+   * Creates a new category or subcategory.
    */
   async createCategory(data: CreateCategoryDto & { slug: string }) {
     return prisma.category.create({
       data: {
+        parentId: data.parentId ?? null,
         name: data.name,
         slug: data.slug,
         description: data.description,
@@ -95,6 +152,10 @@ export class CategoryRepository {
         image: data.image,
         sortOrder: data.sortOrder ?? 0,
         isActive: data.isActive ?? true,
+      },
+      include: {
+        parent: true,
+        subcategories: true,
       },
     });
   }
@@ -106,6 +167,10 @@ export class CategoryRepository {
     return prisma.category.update({
       where: { id },
       data,
+      include: {
+        parent: true,
+        subcategories: true,
+      },
     });
   }
 

@@ -19,6 +19,8 @@ interface ProviderHomeScreenProps {
   onNavigateToCatalog?: () => void;
   onLogout?: () => void;
   vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  hideTopHeader?: boolean;
+  profile?: FullVendorProfile | null;
 }
 
 export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
@@ -26,13 +28,15 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
   onNavigateToCatalog,
   onLogout,
   vendorStatus: initialStatus,
+  hideTopHeader = false,
+  profile: initialProfile,
 }) => {
-  const [profile, setProfile] = useState<FullVendorProfile | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [profile, setProfile] = useState<FullVendorProfile | null>(initialProfile || null);
+  const [loading, setLoading] = useState<boolean>(!initialProfile);
 
   const fetchProfile = async () => {
     try {
-      setLoading(true);
+      if (!initialProfile) setLoading(true);
       const data = await ProviderApiService.getVendorProfile();
       setProfile(data);
     } catch {
@@ -49,25 +53,27 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
   const activeStatus = profile?.status || initialStatus || 'PENDING';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, hideTopHeader && { backgroundColor: 'transparent' }]}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerInfo}>
-            <Text style={styles.greeting}>
-              {profile?.businessName || 'Shubh Mangalam Partner'}
-            </Text>
-            <Text style={styles.subGreeting}>
-              {profile?.city ? `📍 ${profile.city}, ${profile.state || 'India'}` : 'Service Provider Console'}
-            </Text>
+        {/* Header (conditionally rendered) */}
+        {!hideTopHeader && (
+          <View style={styles.header}>
+            <View style={styles.headerInfo}>
+              <Text style={styles.greeting}>
+                {profile?.businessName || 'Shubh Mangalam Partner'}
+              </Text>
+              <Text style={styles.subGreeting}>
+                {profile?.city ? `📍 ${profile.city}, ${profile.state || 'India'}` : 'Service Provider Console'}
+              </Text>
+            </View>
+            {onLogout && (
+              <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
+                <Text style={styles.logoutBtnText}>Logout</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          {onLogout && (
-            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
-              <Text style={styles.logoutBtnText}>Logout</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        )}
 
         {/* Dynamic Approval Lifecycle Banner */}
         <VendorStatusBanner status={activeStatus} />

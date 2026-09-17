@@ -425,6 +425,7 @@ model VendorDocument {
 
 model Category {
   id          String   @id @default(uuid())
+  parentId    String?
   name        String
   slug        String   @unique
   description String?  @db.Text
@@ -435,11 +436,15 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  parent              Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subcategories       Category[]          @relation("CategoryHierarchy")
   vendorCategories    VendorCategory[]
-  services            Service[]
+  services            Service[]           @relation("CategoryServices")
+  subcategoryServices Service[]           @relation("SubcategoryServices")
   eventTypeCategories EventTypeCategory[]
   eventRequirements   EventRequirement[]
 
+  @@index([parentId])
   @@index([slug])
   @@index([isActive])
   @@index([sortOrder])
@@ -469,6 +474,8 @@ model Service {
   id              String      @id @default(uuid())
   vendorId        String
   categoryId      String
+  subcategoryId   String?
+  eventTypeId     String?
   name            String
   slug            String
   description     String?     @db.Text
@@ -485,7 +492,9 @@ model Service {
   updatedAt       DateTime    @updatedAt
 
   vendor          Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category        Category         @relation("CategoryServices", fields: [categoryId], references: [id], onDelete: Restrict)
+  subcategory     Category?        @relation("SubcategoryServices", fields: [subcategoryId], references: [id], onDelete: SetNull)
+  eventType       EventType?       @relation(fields: [eventTypeId], references: [id], onDelete: SetNull)
   images          ServiceImage[]
   packageServices PackageService[]
   bookingItems    BookingItem[]
@@ -496,6 +505,8 @@ model Service {
   @@unique([vendorId, slug])
   @@index([vendorId])
   @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([eventTypeId])
   @@index([isActive])
   @@index([pricingType])
   @@map("services")
@@ -579,6 +590,7 @@ model EventType {
 
   categories EventTypeCategory[]
   events     Event[]
+  services   Service[]
 
   @@index([slug])
   @@index([isActive])

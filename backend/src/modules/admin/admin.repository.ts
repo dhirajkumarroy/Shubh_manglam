@@ -9,6 +9,12 @@ export class AdminRepository {
   async getDashboardStats(): Promise<AdminDashboardStats> {
     const [
       totalUsers,
+      totalCustomers,
+      totalProviders,
+      totalAdmins,
+      totalActiveUsers,
+      totalBlockedUsers,
+      totalVerifiedUsers,
       totalVendors,
       totalApprovedVendors,
       totalPendingVendors,
@@ -17,8 +23,15 @@ export class AdminRepository {
       totalSuspendedVendors,
       totalEventTypes,
       totalCategories,
+      recentUsers,
     ] = await prisma.$transaction([
       prisma.user.count(),
+      prisma.user.count({ where: { role: 'CUSTOMER' } }),
+      prisma.user.count({ where: { role: 'VENDOR' } }),
+      prisma.user.count({ where: { role: 'ADMIN' } }),
+      prisma.user.count({ where: { status: 'ACTIVE', isBlocked: false } }),
+      prisma.user.count({ where: { isBlocked: true } }),
+      prisma.user.count({ where: { emailVerified: true } }),
       prisma.vendor.count(),
       prisma.vendor.count({ where: { status: 'APPROVED' } }),
       prisma.vendor.count({ where: { status: 'PENDING' } }),
@@ -27,10 +40,40 @@ export class AdminRepository {
       prisma.vendor.count({ where: { status: 'SUSPENDED' } }),
       prisma.eventType.count(),
       prisma.category.count(),
+      prisma.user.findMany({
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          name: true,
+          role: true,
+          status: true,
+          emailVerified: true,
+          avatar: true,
+          isBlocked: true,
+          createdAt: true,
+          vendorProfile: {
+            select: {
+              id: true,
+              businessName: true,
+              status: true,
+              isVerified: true,
+            },
+          },
+        },
+      }),
     ]);
 
     return {
       totalUsers,
+      totalCustomers,
+      totalProviders,
+      totalAdmins,
+      totalActiveUsers,
+      totalBlockedUsers,
+      totalVerifiedUsers,
       totalVendors,
       totalApprovedVendors,
       totalPendingVendors,
@@ -39,6 +82,7 @@ export class AdminRepository {
       totalSuspendedVendors,
       totalEventTypes,
       totalCategories,
+      recentUsers,
     };
   }
 
@@ -46,14 +90,33 @@ export class AdminRepository {
    * Retrieves a paginated, filtered list of users sorted newest first.
    */
   async listUsers(dto: UserQueryDto): Promise<{ total: number; users: any[] }> {
-    const { page, limit, email, name } = dto;
+    const { page, limit, search, email, name, role, status, isBlocked } = dto;
     const where: Prisma.UserWhereInput = {};
 
-    if (email) {
-      where.email = { contains: email, mode: 'insensitive' };
+    if (search && search.trim() !== '') {
+      const searchTrimmed = search.trim();
+      where.OR = [
+        { name: { contains: searchTrimmed, mode: 'insensitive' } },
+        { email: { contains: searchTrimmed, mode: 'insensitive' } },
+        { phone: { contains: searchTrimmed, mode: 'insensitive' } },
+      ];
+    } else {
+      if (email) {
+        where.email = { contains: email, mode: 'insensitive' };
+      }
+      if (name) {
+        where.name = { contains: name, mode: 'insensitive' };
+      }
     }
-    if (name) {
-      where.name = { contains: name, mode: 'insensitive' };
+
+    if (role) {
+      where.role = role;
+    }
+    if (status) {
+      where.status = status;
+    }
+    if (typeof isBlocked === 'boolean') {
+      where.isBlocked = isBlocked;
     }
 
     const [total, users] = await prisma.$transaction([

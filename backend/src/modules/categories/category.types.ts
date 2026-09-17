@@ -1,4 +1,5 @@
 export interface CreateCategoryDto {
+  parentId?: string | null;
   name: string;
   description?: string;
   icon?: string;
@@ -8,6 +9,7 @@ export interface CreateCategoryDto {
 }
 
 export interface UpdateCategoryDto {
+  parentId?: string | null;
   name?: string;
   description?: string;
   icon?: string;
@@ -20,11 +22,13 @@ export interface CategoryQueryDto {
   page?: number;
   limit?: number;
   search?: string;
+  parentId?: string | null;
   isActive?: boolean;
 }
 
 export interface CategoryItemResponse {
   id: string;
+  parentId?: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -33,6 +37,8 @@ export interface CategoryItemResponse {
   isActive: boolean;
   sortOrder: number;
   vendorCount?: number;
+  subcategories?: CategoryItemResponse[];
+  parent?: CategoryItemResponse | null;
   createdAt: Date;
   updatedAt: Date;
 }

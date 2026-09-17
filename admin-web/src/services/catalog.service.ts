@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+import apiClient from './apiClient';
 
 export interface AdminServiceItem {
   id: string;
@@ -81,32 +81,8 @@ export interface AdminPackageItem {
 }
 
 class AdminCatalogService {
-  private getToken(): string | null {
-    return sessionStorage.getItem('admin_access_token');
-  }
-
   private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = this.getToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
-
-    const body = await res.json();
-    if (!res.ok) {
-      throw new Error(body.message || `API error (${res.status})`);
-    }
-
-    return body.data;
+    return apiClient.request<T>(endpoint, options);
   }
 
   async listServices(params?: {
