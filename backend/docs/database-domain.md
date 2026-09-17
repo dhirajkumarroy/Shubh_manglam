@@ -227,3 +227,45 @@ To prevent accidental data loss and maintain backward compatibility during devel
 
 ### Migration Roadmap to Shubh Mangalam:
 In future phases, **Transportation** is treated as a standard event service category (already seeded under `Category: Transportation`). Event-related vehicle bookings (e.g., Doli cars, vintage groom cars, guest transit buses) will be integrated directly into the `Service` and `Booking` models, deprecating the standalone GoVehicle transport tables.
+
+---
+
+## 8. Critical Architectural Rule — Everything Must Be Dynamic
+
+### 8.1 Zero Static Business Data
+Business, catalog, and platform configuration data must **never** be hard-coded in:
+- Backend controllers or services
+- TypeScript constants or mock files
+- React / React Native components or screens
+- Navigation configurations
+- Frontend UI state fallbacks
+
+### 8.2 Single Source of Truth
+The **PostgreSQL Database** is the sole source of truth:
+```text
+                  ┌──────────────────┐
+                  │    PostgreSQL    │
+                  │  Source of Truth │
+                  └────────┬─────────┘
+                           │
+                     Backend API
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+     Customer App     Provider App      Admin Web
+```
+
+### 8.3 Dynamic Entities Matrix
+| Business Entity | Database Model | Admin Control / Dynamic Mechanism |
+| :--- | :--- | :--- |
+| **Event Types** | `EventType` | Add/rename/deactivate any event (e.g., Retirement Party) via Admin Web. |
+| **Categories** | `Category` | Create, edit, reorder, iconize, activate/deactivate without deployments. |
+| **Services** | `Service` | Vendors create and maintain their own services per category dynamically. |
+| **Packages** | `Package`, `PackageService` | Providers bundle services dynamically with custom pricing and items. |
+| **Recommendations** | `EventTypeCategory` | Admin defines which categories map to which event types dynamically. |
+| **Pricing** | `Service`, `Quote`, `BookingItem` | Calculated dynamically per pricing type (`FIXED`, `PER_PERSON`, `CUSTOM_QUOTE`). |
+| **Vendors & Locations** | `Vendor`, `Address` | Discovered dynamically based on customer coordinates and Haversine distance. |
+| **Platform Settings** | `AdminSetting` | Commission rates, booking limits, and thresholds stored in database. |
+| **Seed Scripts** | `seed.ts` | Treated strictly as **initial database bootstrap**, never application constants. |
+

@@ -2,16 +2,22 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
 import colors from '../theme/colors';
 
-const UPCOMING_CATEGORIES = [
-  { id: '1', name: 'Decoration & Lighting', icon: '✨', desc: 'Mandap, floral, stage, illumination' },
-  { id: '2', name: 'Tent & Pandals', icon: '⛺', desc: 'Waterproof tents, seating, shamiana' },
-  { id: '3', name: 'Catering & Halwai', icon: '🍲', desc: 'Buffet, live counters, traditional sweets' },
-  { id: '4', name: 'DJ, Sound & Band', icon: '🎶', desc: 'Music systems, dhol, brass band' },
-  { id: '5', name: 'Photography & Video', icon: '📸', desc: 'Cinematic wedding, drone, pre-wedding' },
-  { id: '6', name: 'Makeup & Mehndi', icon: '💄', desc: 'Bridal makeover, festive henna' },
-];
+export interface MarketplaceCategory {
+  id: string;
+  name: string;
+  icon?: string | null;
+  description?: string | null;
+}
 
-export const ProviderHomeScreen: React.FC = () => {
+interface ProviderHomeScreenProps {
+  categories?: MarketplaceCategory[];
+  isLoading?: boolean;
+}
+
+export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
+  categories = [],
+  isLoading = false,
+}) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
@@ -54,15 +60,29 @@ export const ProviderHomeScreen: React.FC = () => {
 
         {/* Service Categories Preview */}
         <Text style={styles.sectionTitle}>Supported Event Services</Text>
-        {UPCOMING_CATEGORIES.map((cat) => (
-          <View key={cat.id} style={styles.categoryCard}>
-            <Text style={styles.categoryIcon}>{cat.icon}</Text>
-            <View style={styles.categoryInfo}>
-              <Text style={styles.categoryName}>{cat.name}</Text>
-              <Text style={styles.categoryDesc}>{cat.desc}</Text>
-            </View>
+        {isLoading ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Loading marketplace services from server...</Text>
           </View>
-        ))}
+        ) : categories.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>🎪</Text>
+            <Text style={styles.emptyTitle}>Live Marketplace Catalog</Text>
+            <Text style={styles.emptyText}>
+              Categories and service configurations are loaded dynamically from the central database.
+            </Text>
+          </View>
+        ) : (
+          categories.map((cat) => (
+            <View key={cat.id} style={styles.categoryCard}>
+              {cat.icon && <Text style={styles.categoryIcon}>{cat.icon}</Text>}
+              <View style={styles.categoryInfo}>
+                <Text style={styles.categoryName}>{cat.name}</Text>
+                {cat.description && <Text style={styles.categoryDesc}>{cat.description}</Text>}
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -179,6 +199,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  emptyContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  emptyIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  emptyText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
 
