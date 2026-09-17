@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -56,7 +57,6 @@ const CATEGORIES = [
   { name: 'Other', description: 'Specialized and custom celebration services', sortOrder: 23 },
 ];
 
-// Recommended category names per event type
 const EVENT_RECOMMENDED_CATEGORIES: Record<string, string[]> = {
   Wedding: [
     'Decoration',
@@ -103,17 +103,16 @@ const EVENT_RECOMMENDED_CATEGORIES: Record<string, string[]> = {
     'Venue',
     'Furniture',
     'Sound',
-    'Security',
   ],
-  Teej: ['Mehndi', 'Decoration', 'Catering', 'Sound', 'Halwai', 'Photography', 'Lighting'],
-  'Karwa Chauth': ['Mehndi', 'Makeup', 'Decoration', 'Photography', 'Catering'],
-  Mundan: ['Pandit', 'Decoration', 'Catering', 'Photography', 'Tent', 'Sound'],
-  Puja: ['Pandit', 'Florist', 'Decoration', 'Catering', 'Sound', 'Tent', 'Halwai'],
-  Jagran: ['Sound', 'Lighting', 'Decoration', 'Tent', 'Catering', 'Halwai', 'Generator'],
-  Anniversary: ['Decoration', 'Catering', 'Photography', 'Lighting', 'Sound', 'Venue', 'DJ'],
-  'Baby Shower': ['Decoration', 'Catering', 'Photography', 'Sound', 'Mehndi'],
-  Housewarming: ['Pandit', 'Decoration', 'Catering', 'Florist', 'Sound', 'Lighting'],
-  Festival: ['Lighting', 'Decoration', 'Sound', 'Catering', 'Tent', 'Generator', 'Security'],
+  Teej: ['Decoration', 'Mehndi', 'Music', 'Catering', 'Halwai', 'Photography', 'Sound'],
+  'Karwa Chauth': ['Mehndi', 'Makeup', 'Decoration', 'Photography', 'Florist'],
+  Mundan: ['Pandit', 'Decoration', 'Catering', 'Halwai', 'Photography', 'Sound'],
+  Puja: ['Pandit', 'Florist', 'Sound', 'Lighting', 'Decoration', 'Catering'],
+  Jagran: ['Band', 'Sound', 'Lighting', 'Singer', 'Tent', 'Decoration', 'Catering', 'Halwai', 'Pandit'],
+  Anniversary: ['Decoration', 'Catering', 'Photography', 'DJ', 'Venue', 'Lighting', 'Sound'],
+  'Baby Shower': ['Decoration', 'Catering', 'Photography', 'Mehndi', 'Makeup', 'Sound'],
+  Housewarming: ['Pandit', 'Decoration', 'Catering', 'Halwai', 'Florist', 'Lighting'],
+  Festival: ['Decoration', 'Lighting', 'Sound', 'Tent', 'Security', 'Generator', 'Catering'],
   'Corporate Event': [
     'Venue',
     'Catering',
@@ -121,91 +120,110 @@ const EVENT_RECOMMENDED_CATEGORIES: Record<string, string[]> = {
     'Lighting',
     'Photography',
     'Videography',
-    'Generator',
     'Security',
-    'Furniture',
+    'Transportation',
   ],
-  Party: ['DJ', 'Sound', 'Lighting', 'Catering', 'Decoration', 'Venue', 'Security'],
-  Other: ['Decoration', 'Catering', 'Sound', 'Tent', 'Lighting'],
+  Party: ['DJ', 'Sound', 'Lighting', 'Catering', 'Decoration', 'Photography', 'Venue'],
+  Other: ['Decoration', 'Catering', 'Sound', 'Photography'],
 };
 
 async function main() {
-  console.log('--- Seeding Shubh Mangalam Marketplace Foundation ---');
+  console.log('--- PURGING ALL DUMMY DATA & INITIALIZING CLEAN PRODUCTION SEED ---');
 
-  // 1. Seed Event Types
-  console.log('Seeding Event Types...');
-  const eventTypeMap = new Map<string, string>(); // name -> id
-  for (const item of EVENT_TYPES) {
-    const slug = toSlug(item.name);
-    const eventType = await prisma.eventType.upsert({
-      where: { slug },
-      update: {
-        name: item.name,
-        description: item.description,
-        sortOrder: item.sortOrder,
-        isActive: true,
-      },
-      create: {
-        name: item.name,
+  // 1. Truncate all dynamic business & user tables using CASCADE
+  console.log('1. Clearing dummy tables in PostgreSQL...');
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "public"."audit_logs",
+      "public"."notifications",
+      "public"."payments",
+      "public"."refunds",
+      "public"."commissions",
+      "public"."vendor_payouts",
+      "public"."reviews",
+      "public"."favorites",
+      "public"."coupons",
+      "public"."coupon_usages",
+      "public"."booking_items",
+      "public"."bookings",
+      "public"."quote_items",
+      "public"."quotes",
+      "public"."event_requirements",
+      "public"."events",
+      "public"."addresses",
+      "public"."availabilities",
+      "public"."time_slots",
+      "public"."package_services",
+      "public"."packages",
+      "public"."service_images",
+      "public"."services",
+      "public"."vendor_documents",
+      "public"."vendor_categories",
+      "public"."vendors",
+      "public"."user_sessions",
+      "public"."oauth_accounts",
+      "public"."email_verification_tokens",
+      "public"."password_reset_tokens",
+      "public"."admin_mfa",
+      "public"."users",
+      "public"."event_type_categories",
+      "public"."categories",
+      "public"."event_types"
+    CASCADE;
+  `);
+
+  console.log('All dummy records deleted successfully.');
+
+  // 2. Seed Clean Official Event Types
+  console.log('\n2. Seeding 16 Official Celebration Event Types...');
+  const eventTypeMap = new Map<string, string>();
+  for (const et of EVENT_TYPES) {
+    const slug = toSlug(et.name);
+    const created = await prisma.eventType.create({
+      data: {
+        name: et.name,
         slug,
-        description: item.description,
-        sortOrder: item.sortOrder,
+        description: et.description,
+        sortOrder: et.sortOrder,
         isActive: true,
       },
     });
-    eventTypeMap.set(item.name, eventType.id);
+    eventTypeMap.set(et.name, created.id);
   }
-  console.log(`Seeded ${eventTypeMap.size} Event Types.`);
+  console.log(`Seeded ${eventTypeMap.size} event types.`);
 
-  // 2. Seed Categories
-  console.log('Seeding Categories...');
-  const categoryMap = new Map<string, string>(); // name -> id
-  for (const item of CATEGORIES) {
-    const slug = toSlug(item.name);
-    const category = await prisma.category.upsert({
-      where: { slug },
-      update: {
-        name: item.name,
-        description: item.description,
-        sortOrder: item.sortOrder,
-        isActive: true,
-      },
-      create: {
-        name: item.name,
+  // 3. Seed Clean Official Categories
+  console.log('\n3. Seeding 23 Official Celebration Categories...');
+  const categoryMap = new Map<string, string>();
+  for (const cat of CATEGORIES) {
+    const slug = toSlug(cat.name);
+    const created = await prisma.category.create({
+      data: {
+        name: cat.name,
         slug,
-        description: item.description,
-        sortOrder: item.sortOrder,
+        description: cat.description,
+        sortOrder: cat.sortOrder,
         isActive: true,
       },
     });
-    categoryMap.set(item.name, category.id);
+    categoryMap.set(cat.name, created.id);
   }
-  console.log(`Seeded ${categoryMap.size} Categories.`);
+  console.log(`Seeded ${categoryMap.size} categories.`);
 
-  // 3. Seed EventTypeCategory Mappings
-  console.log('Seeding EventType ↔ Category Mappings...');
+  // 4. Map Event Types to Recommended Categories
+  console.log('\n4. Mapping Event Types to Recommended Categories...');
   let mappingCount = 0;
   for (const [eventTypeName, categoryNames] of Object.entries(EVENT_RECOMMENDED_CATEGORIES)) {
     const eventTypeId = eventTypeMap.get(eventTypeName);
     if (!eventTypeId) continue;
 
     for (let i = 0; i < categoryNames.length; i++) {
-      const categoryName = categoryNames[i];
-      const categoryId = categoryMap.get(categoryName);
+      const catName = categoryNames[i];
+      const categoryId = categoryMap.get(catName);
       if (!categoryId) continue;
 
-      await prisma.eventTypeCategory.upsert({
-        where: {
-          eventTypeId_categoryId: {
-            eventTypeId,
-            categoryId,
-          },
-        },
-        update: {
-          isRecommended: true,
-          sortOrder: i + 1,
-        },
-        create: {
+      await prisma.eventTypeCategory.create({
+        data: {
           eventTypeId,
           categoryId,
           isRecommended: true,
@@ -215,244 +233,41 @@ async function main() {
       mappingCount++;
     }
   }
-  console.log(`Seeded ${mappingCount} EventType ↔ Category Mappings.`);
+  console.log(`Created ${mappingCount} EventType <-> Category recommended relationships.`);
 
-  // 4. Seed Development Demo Accounts
-  console.log('Seeding Development Demo Accounts...');
-  const bcrypt = await import('bcrypt');
-  // Simple password for fast mobile & web development testing
-  const easyPassword = 'password';
-  const hashedPassword = await bcrypt.hash(easyPassword, 10);
-
-  // 4.1 Dhiraj Kumar Customer Account
-  const dhiraj = await prisma.user.upsert({
-    where: { email: 'dhiraj@gmail.com' },
-    update: {
-      name: 'Dhiraj Kumar',
-      phone: '+919811111111',
-      passwordHash: hashedPassword,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-    create: {
-      name: 'Dhiraj Kumar',
-      email: 'dhiraj@gmail.com',
-      phone: '+919811111111',
-      passwordHash: hashedPassword,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-  });
-  console.log('Seeded easy customer account:', dhiraj.email, '(password: password)');
-
-  // 4.2 Demo Customer
-  const customerEmail = 'customer.demo@shubhmangalam.local';
-  const customer = await prisma.user.upsert({
-    where: { email: customerEmail },
-    update: {
-      name: 'Demo Customer',
-      phone: '+919800000001',
-      passwordHash: hashedPassword,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-    create: {
-      name: 'Demo Customer',
-      email: customerEmail,
-      phone: '+919800000001',
-      passwordHash: hashedPassword,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-  });
-  console.log('Seeded demo customer:', customer.email, '(password: password)');
-
-  // 4.3 Easy Provider Account (provider@gmail.com)
-  const easyProvider = await prisma.user.upsert({
-    where: { email: 'provider@gmail.com' },
-    update: {
-      name: 'Dhiraj Events & Decorations',
-      phone: '+919822222222',
-      passwordHash: hashedPassword,
-      role: 'VENDOR',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-    create: {
-      name: 'Dhiraj Events & Decorations',
-      email: 'provider@gmail.com',
-      phone: '+919822222222',
-      passwordHash: hashedPassword,
-      role: 'VENDOR',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-  });
-
-  await prisma.vendor.upsert({
-    where: { userId: easyProvider.id },
-    update: {
-      businessName: 'Dhiraj Events & Tent House',
-      slug: 'dhiraj-events',
-      phone: '+919822222222',
-      email: 'provider@gmail.com',
-      addressLine1: 'Main Market, Model Town',
-      city: 'Panipat',
-      state: 'Haryana',
-      pincode: '132103',
-      latitude: 29.3909,
-      longitude: 76.9635,
-      status: 'APPROVED',
-      isVerified: true,
-      isActive: true,
-    },
-    create: {
-      userId: easyProvider.id,
-      businessName: 'Dhiraj Events & Tent House',
-      slug: 'dhiraj-events',
-      phone: '+919822222222',
-      email: 'provider@gmail.com',
-      addressLine1: 'Main Market, Model Town',
-      city: 'Panipat',
-      state: 'Haryana',
-      pincode: '132103',
-      latitude: 29.3909,
-      longitude: 76.9635,
-      status: 'APPROVED',
-      isVerified: true,
-      isActive: true,
-    },
-  });
-  console.log('Seeded easy provider:', easyProvider.email, '(password: password)');
-
-  // 4.4 Demo Provider (Approved Vendor for provider testing)
-  const providerEmail = 'provider.demo@shubhmangalam.local';
-  const provider = await prisma.user.upsert({
-    where: { email: providerEmail },
-    update: {
-      name: 'Royal Events (Demo Provider)',
-      phone: '+919800000002',
-      passwordHash: hashedPassword,
-      role: 'VENDOR',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-    create: {
-      name: 'Royal Events (Demo Provider)',
-      email: providerEmail,
-      phone: '+919800000002',
-      passwordHash: hashedPassword,
-      role: 'VENDOR',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-  });
-
-  await prisma.vendor.upsert({
-    where: { userId: provider.id },
-    update: {
-      businessName: 'Royal Events & Celebrations',
-      slug: 'royal-events-demo',
-      phone: '+919800000002',
-      email: providerEmail,
-      addressLine1: 'GT Road, Near City Mall',
-      city: 'Panipat',
-      state: 'Haryana',
-      pincode: '132103',
-      latitude: 29.3909,
-      longitude: 76.9635,
-      status: 'APPROVED',
-      isVerified: true,
-      isActive: true,
-    },
-    create: {
-      userId: provider.id,
-      businessName: 'Royal Events & Celebrations',
-      slug: 'royal-events-demo',
-      phone: '+919800000002',
-      email: providerEmail,
-      addressLine1: 'GT Road, Near City Mall',
-      city: 'Panipat',
-      state: 'Haryana',
-      pincode: '132103',
-      latitude: 29.3909,
-      longitude: 76.9635,
-      status: 'APPROVED',
-      isVerified: true,
-      isActive: true,
-    },
-  });
-  console.log('Seeded demo provider (APPROVED):', provider.email, '(password: password)');
-
-  // 4.5 Easy Admin Account (admin@gmail.com)
-  const easyAdmin = await prisma.user.upsert({
-    where: { email: 'admin@gmail.com' },
-    update: {
-      name: 'System Admin',
-      phone: '+919833333333',
-      passwordHash: hashedPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-    create: {
-      name: 'System Admin',
+  // 5. Seed Single Official Administrator
+  console.log('\n5. Seeding System Administrator Account...');
+  const adminPasswordHash = await bcrypt.hash('Password@123', 10);
+  const admin = await prisma.user.create({
+    data: {
+      name: 'System Administrator',
       email: 'admin@gmail.com',
       phone: '+919833333333',
-      passwordHash: hashedPassword,
+      passwordHash: adminPasswordHash,
       role: 'ADMIN',
       status: 'ACTIVE',
       emailVerified: true,
       phoneVerified: true,
     },
   });
-  console.log('Seeded easy admin:', easyAdmin.email, '(password: password)');
+  console.log(`Administrator created: ${admin.email} (Password: Password@123)`);
 
-  // 4.6 Demo Administrator
-  const adminEmail = 'admin.demo@shubhmangalam.local';
-  const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      name: 'Marketplace Administrator',
-      phone: '+919800000003',
-      passwordHash: hashedPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-    create: {
-      name: 'Marketplace Administrator',
-      email: adminEmail,
-      phone: '+919800000003',
-      passwordHash: hashedPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phoneVerified: true,
-    },
-  });
-  console.log('Seeded demo admin:', admin.email, '(password: password)');
-
-  console.log('--- Seed Completed Successfully ---');
+  console.log('\n======================================================');
+  console.log('✅ DATABASE PURGE & CLEAN PRODUCTION SEED COMPLETED!');
+  console.log('======================================================');
+  const userCount = await prisma.user.count();
+  const vendorCount = await prisma.vendor.count();
+  const categoryCount = await prisma.category.count();
+  const eventTypeCount = await prisma.eventType.count();
+  console.log(`Registered Accounts: ${userCount} (Admin only)`);
+  console.log(`Registered Vendors:  ${vendorCount} (0 dummy vendors)`);
+  console.log(`Categories:          ${categoryCount} (official celebration categories)`);
+  console.log(`Event Types:         ${eventTypeCount} (official celebration types)`);
 }
 
 main()
   .catch((e) => {
-    console.error('Seed error:', e);
+    console.error('Clean seed error:', e);
     process.exit(1);
   })
   .finally(async () => {

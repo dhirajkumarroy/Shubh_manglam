@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "seed": "ts-node prisma/seed.ts",
     "test": "ts-node tests/auth.test.ts && ts-node tests/vendor.test.ts && ts-node tests/catalog.test.ts && ts-node tests/marketplace.test.ts",
     "test:auth": "ts-node tests/auth.test.ts",
     "test:vendor": "ts-node tests/vendor.test.ts",
