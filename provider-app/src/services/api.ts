@@ -171,4 +171,61 @@ export class ProviderApiService {
     }
     await this.clearTokens();
   }
+
+  // =========================================================================
+  // Vendor Profile & Onboarding API
+  // =========================================================================
+
+  static async getVendorProfile(): Promise<any> {
+    const res = await this.request<any>('/vendor/profile', {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async updateVendorProfile(body: any): Promise<any> {
+    const res = await this.request<any>('/vendor/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async getCategories(): Promise<any[]> {
+    const res = await this.request<any[]>('/categories', {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async updateVendorCategories(categoryIds: string[]): Promise<any> {
+    const res = await this.request<any>('/vendor/categories', {
+      method: 'PUT',
+      body: JSON.stringify({ categoryIds }),
+    });
+    return res.data;
+  }
+
+  static async addVendorDocument(body: { documentType: string; documentUrl: string }): Promise<any> {
+    const res = await this.request<any>('/vendor/documents', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async deleteVendorDocument(documentId: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/documents/${documentId}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  }
+
+  static async submitForReview(): Promise<any> {
+    const res = await this.request<any>('/vendor/submit-for-review', {
+      method: 'POST',
+    });
+    return res.data;
+  }
 }
+

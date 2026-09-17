@@ -4,6 +4,9 @@ import authRouter from '../modules/auth/auth.routes';
 import userRouter from '../modules/users/user.routes';
 import notificationRouter from '../modules/notifications/notification.routes';
 import adminRouter from '../modules/admin/admin.routes';
+import categoryRouter from '../modules/categories/category.routes';
+import vendorRouter from '../modules/vendors/vendor.routes';
+import uploadRouter from '../modules/uploads/upload.routes';
 
 const router = Router();
 
@@ -42,5 +45,9 @@ router.use('/auth', authRouter);
 router.use('/users', userRouter);
 router.use('/notifications', notificationRouter);
 router.use('/admin', adminRouter);
+router.use('/categories', categoryRouter);
+router.use('/vendor', vendorRouter);
+router.use('/uploads', uploadRouter);
 
 export default router;
+

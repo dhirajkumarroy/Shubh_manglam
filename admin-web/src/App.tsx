@@ -6,6 +6,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
+import VendorListPage from './pages/VendorListPage';
+import VendorDetailsPage from './pages/VendorDetailsPage';
+import CategoriesPage from './pages/CategoriesPage';
 
 const queryClient = new QueryClient();
 
@@ -19,6 +22,11 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<AdminLayout />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="providers" element={<VendorListPage />} />
+                <Route path="providers/:id" element={<VendorDetailsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                {/* Fallback alias for services link */}
+                <Route path="services" element={<CategoriesPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

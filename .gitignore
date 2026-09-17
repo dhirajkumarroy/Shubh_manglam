@@ -25,4 +25,7 @@ build/
 # Build info / cache
 *.tsbuildinfo
 **/*.tsbuildinfo
+.idea/
+**/.idea/
+
 

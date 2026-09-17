@@ -42,7 +42,9 @@ export const colors = {
   textSecondary: '#57534E',   // Warm charcoal secondary (Stone 600)
   textMuted: '#78716C',       // Muted text (Stone 500)
   textLight: '#A8A29E',       // Subdued placeholder text
+  placeholder: '#A8A29E',     // Input placeholder text
   textDark: '#1C1917',        // High contrast dark charcoal
+
 
   // Functional Status Colors
   success: '#16A34A',         // Emerald green

@@ -19,8 +19,9 @@ const NAVIGATION_ITEMS = [
   { name: 'Service Providers', path: '/providers', icon: Store },
   { name: 'Customers', path: '/users', icon: Users },
   { name: 'Event Bookings', path: '/bookings', icon: Calendar },
-  { name: 'Categories & Services', path: '/services', icon: Tag },
+  { name: 'Categories & Services', path: '/categories', icon: Tag },
   { name: 'Payments & Payouts', path: '/payments', icon: CreditCard },
+
   { name: 'Reviews & Quality', path: '/reviews', icon: Star },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
