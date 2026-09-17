@@ -235,22 +235,73 @@ async function main() {
   }
   console.log(`Created ${mappingCount} EventType <-> Category recommended relationships.`);
 
-  // 5. Seed Single Official Administrator
-  console.log('\n5. Seeding System Administrator Account...');
-  const adminPasswordHash = await bcrypt.hash('Password@123', 10);
+  // 5. Seed Official Accounts for Manual Testing
+  console.log('\n5. Seeding Standard Accounts (Admin, Customer, Provider)...');
+  const defaultPasswordHash = await bcrypt.hash('Password@123', 10);
+
+  // 5.1 Admin Account
   const admin = await prisma.user.create({
     data: {
       name: 'System Administrator',
       email: 'admin@gmail.com',
       phone: '+919833333333',
-      passwordHash: adminPasswordHash,
+      passwordHash: defaultPasswordHash,
       role: 'ADMIN',
       status: 'ACTIVE',
       emailVerified: true,
       phoneVerified: true,
     },
   });
-  console.log(`Administrator created: ${admin.email} (Password: Password@123)`);
+  console.log(`Admin created:     ${admin.email} (Password: Password@123)`);
+
+  // 5.2 Customer Account
+  const customer = await prisma.user.create({
+    data: {
+      name: 'Dhiraj Customer',
+      email: 'customer@gmail.com',
+      phone: '+919811111111',
+      passwordHash: defaultPasswordHash,
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+  console.log(`Customer created:  ${customer.email} (Password: Password@123)`);
+
+  // 5.3 Provider Account (Approved Vendor)
+  const provider = await prisma.user.create({
+    data: {
+      name: 'Royal Events Partner',
+      email: 'provider@gmail.com',
+      phone: '+919822222222',
+      passwordHash: defaultPasswordHash,
+      role: 'VENDOR',
+      status: 'ACTIVE',
+      emailVerified: true,
+      phoneVerified: true,
+    },
+  });
+
+  await prisma.vendor.create({
+    data: {
+      userId: provider.id,
+      businessName: 'Royal Celebrations & Decor',
+      slug: 'royal-celebrations-decor',
+      phone: '+919822222222',
+      email: 'provider@gmail.com',
+      addressLine1: 'Main Market, GT Road',
+      city: 'Panipat',
+      state: 'Haryana',
+      pincode: '132103',
+      latitude: 29.3909,
+      longitude: 76.9635,
+      status: 'APPROVED',
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  console.log(`Provider created:  ${provider.email} (Password: Password@123) [APPROVED]`);
 
   console.log('\n======================================================');
   console.log('✅ DATABASE PURGE & CLEAN PRODUCTION SEED COMPLETED!');
@@ -259,8 +310,8 @@ async function main() {
   const vendorCount = await prisma.vendor.count();
   const categoryCount = await prisma.category.count();
   const eventTypeCount = await prisma.eventType.count();
-  console.log(`Registered Accounts: ${userCount} (Admin only)`);
-  console.log(`Registered Vendors:  ${vendorCount} (0 dummy vendors)`);
+  console.log(`Registered Accounts: ${userCount} (Admin, Customer, Provider)`);
+  console.log(`Registered Vendors:  ${vendorCount} (Royal Celebrations & Decor)`);
   console.log(`Categories:          ${categoryCount} (official celebration categories)`);
   console.log(`Event Types:         ${eventTypeCount} (official celebration types)`);
 }
