@@ -11,6 +11,7 @@ import VendorDetailsPage from './pages/VendorDetailsPage';
 import CategoriesPage from './pages/CategoriesPage';
 import ServicesPage from './pages/ServicesPage';
 import PackagesPage from './pages/PackagesPage';
+import EventTypesPage from './pages/EventTypesPage';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ export default function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="providers" element={<VendorListPage />} />
                 <Route path="providers/:id" element={<VendorDetailsPage />} />
+                <Route path="event-types" element={<EventTypesPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="services" element={<ServicesPage />} />
                 <Route path="packages" element={<PackagesPage />} />

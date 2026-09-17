@@ -19,6 +19,7 @@ import { useAuth } from '../store/AuthContext';
 const NAVIGATION_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Service Providers', path: '/providers', icon: Store },
+  { name: 'Celebration Types', path: '/event-types', icon: Calendar },
   { name: 'Categories', path: '/categories', icon: Tag },
   { name: 'Catalog Services', path: '/services', icon: Layers },
   { name: 'Package Combos', path: '/packages', icon: Package },

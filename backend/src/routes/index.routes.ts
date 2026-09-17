@@ -13,6 +13,13 @@ import {
   publicPackagesRouter,
   adminCatalogRouter,
 } from '../modules/catalog/catalog.routes';
+import {
+  publicEventTypesRouter,
+  customerEventsRouter,
+  adminEventTypesRouter,
+} from '../modules/events/event.routes';
+import addressRouter from '../modules/addresses/address.routes';
+import marketplaceRouter from '../modules/marketplace/marketplace.routes';
 
 const router = Router();
 
@@ -52,7 +59,12 @@ router.use('/users', userRouter);
 router.use('/notifications', notificationRouter);
 router.use('/admin', adminRouter);
 router.use('/admin', adminCatalogRouter);
+router.use('/admin/event-types', adminEventTypesRouter);
 router.use('/categories', categoryRouter);
+router.use('/event-types', publicEventTypesRouter);
+router.use('/events', customerEventsRouter);
+router.use('/addresses', addressRouter);
+router.use('/marketplace', marketplaceRouter);
 router.use('/vendor', vendorRouter);
 router.use('/vendor', vendorCatalogRouter);
 router.use('/services', publicServicesRouter);

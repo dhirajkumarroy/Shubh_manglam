@@ -21,6 +21,22 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 // Home Screen
 import HomeScreen from '../screens/home/HomeScreen';
 
+// Event Planning Screens
+import EventTypesScreen from '../screens/events/EventTypesScreen';
+import CreateEventScreen from '../screens/events/CreateEventScreen';
+import EventDetailsScreen from '../screens/events/EventDetailsScreen';
+import EventRequirementsScreen from '../screens/events/EventRequirementsScreen';
+
+// Location Screen
+import LocationSelectionScreen from '../screens/location/LocationSelectionScreen';
+
+// Marketplace Screens
+import CategoryDiscoveryScreen from '../screens/marketplace/CategoryDiscoveryScreen';
+import VendorDiscoveryScreen from '../screens/marketplace/VendorDiscoveryScreen';
+import VendorDetailsScreen from '../screens/marketplace/VendorDetailsScreen';
+import ServiceDetailsScreen from '../screens/marketplace/ServiceDetailsScreen';
+import PackageDetailsScreen from '../screens/marketplace/PackageDetailsScreen';
+
 // Notification Screen
 import NotificationsScreen from '../screens/notification/NotificationsScreen';
 
@@ -48,6 +64,16 @@ const HomeStackNavigator = () => {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeScreen" component={HomeScreen} />
+      <HomeStack.Screen name="EventTypesScreen" component={EventTypesScreen} />
+      <HomeStack.Screen name="CreateEventScreen" component={CreateEventScreen} />
+      <HomeStack.Screen name="EventDetailsScreen" component={EventDetailsScreen} />
+      <HomeStack.Screen name="EventRequirementsScreen" component={EventRequirementsScreen} />
+      <HomeStack.Screen name="LocationSelectionScreen" component={LocationSelectionScreen} />
+      <HomeStack.Screen name="CategoryDiscoveryScreen" component={CategoryDiscoveryScreen} />
+      <HomeStack.Screen name="VendorDiscoveryScreen" component={VendorDiscoveryScreen} />
+      <HomeStack.Screen name="VendorDetailsScreen" component={VendorDetailsScreen} />
+      <HomeStack.Screen name="ServiceDetailsScreen" component={ServiceDetailsScreen} />
+      <HomeStack.Screen name="PackageDetailsScreen" component={PackageDetailsScreen} />
     </HomeStack.Navigator>
   );
 };
