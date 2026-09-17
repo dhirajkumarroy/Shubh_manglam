@@ -257,10 +257,13 @@ export class AdminRepository {
   /**
    * Updates vendor status and verification flag.
    */
-  async updateVendorStatus(vendorId: string, status: VendorStatus, isVerified?: boolean) {
+  async updateVendorStatus(vendorId: string, status: VendorStatus, isVerified?: boolean, isActive?: boolean) {
     const data: Prisma.VendorUpdateInput = { status };
     if (isVerified !== undefined) {
       data.isVerified = isVerified;
+    }
+    if (isActive !== undefined) {
+      data.isActive = isActive;
     }
 
     return prisma.vendor.update({

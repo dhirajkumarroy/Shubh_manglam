@@ -4,7 +4,60 @@ export type RootStackParamList = {
   ProviderRegister: undefined;
   VendorOnboarding: undefined;
   ProviderHome: { vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' } | undefined;
+  CatalogDashboard: undefined;
+  ServiceForm: { serviceId?: string } | undefined;
+  ServiceImages: { serviceId: string; serviceName: string };
+  PackageForm: { packageId?: string } | undefined;
 };
+
+export interface CatalogServiceItem {
+  id: string;
+  vendorId: string;
+  categoryId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  pricingType: 'FIXED' | 'PER_PERSON' | 'PER_UNIT' | 'PER_DAY' | 'PER_HOUR' | 'CUSTOM_QUOTE';
+  basePrice: number | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  minQuantity: number | null;
+  maxQuantity: number | null;
+  durationMinutes: number | null;
+  isAvailable: boolean;
+  isActive: boolean;
+  category: {
+    id: string;
+    name: string;
+    icon?: string | null;
+  };
+  primaryImage?: string | null;
+  images?: any[];
+}
+
+export interface CatalogPackageItem {
+  id: string;
+  vendorId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  durationMinutes: number | null;
+  isActive: boolean;
+  services: {
+    id: string;
+    serviceId: string;
+    quantity: number;
+    service: {
+      id: string;
+      name: string;
+      pricingType: string;
+      basePrice: number | null;
+    };
+  }[];
+}
 
 export interface ServiceCategory {
   id: string;

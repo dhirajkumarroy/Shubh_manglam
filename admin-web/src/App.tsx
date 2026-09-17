@@ -9,6 +9,8 @@ import LoginPage from './pages/LoginPage';
 import VendorListPage from './pages/VendorListPage';
 import VendorDetailsPage from './pages/VendorDetailsPage';
 import CategoriesPage from './pages/CategoriesPage';
+import ServicesPage from './pages/ServicesPage';
+import PackagesPage from './pages/PackagesPage';
 
 const queryClient = new QueryClient();
 
@@ -25,8 +27,8 @@ export default function App() {
                 <Route path="providers" element={<VendorListPage />} />
                 <Route path="providers/:id" element={<VendorDetailsPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
-                {/* Fallback alias for services link */}
-                <Route path="services" element={<CategoriesPage />} />
+                <Route path="services" element={<ServicesPage />} />
+                <Route path="packages" element={<PackagesPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

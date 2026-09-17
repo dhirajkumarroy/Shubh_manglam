@@ -16,12 +16,14 @@ import { FullVendorProfile } from '../types';
 
 interface ProviderHomeScreenProps {
   onNavigateToOnboarding?: () => void;
+  onNavigateToCatalog?: () => void;
   onLogout?: () => void;
   vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 }
 
 export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
   onNavigateToOnboarding,
+  onNavigateToCatalog,
   onLogout,
   vendorStatus: initialStatus,
 }) => {
@@ -95,6 +97,14 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
 
         {/* Quick Actions Row */}
         <View style={styles.actionsRow}>
+          {activeStatus === 'APPROVED' && onNavigateToCatalog && (
+            <TouchableOpacity
+              style={styles.catalogBtn}
+              onPress={onNavigateToCatalog}
+            >
+              <Text style={styles.catalogBtnText}>🎪 Manage Services & Packages →</Text>
+            </TouchableOpacity>
+          )}
           {onNavigateToOnboarding && (
             <TouchableOpacity
               style={styles.manageBtn}
@@ -283,6 +293,18 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     marginBottom: 16,
+    gap: 8,
+  },
+  catalogBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  catalogBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   manageBtn: {
     backgroundColor: colors.card,

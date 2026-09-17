@@ -6,6 +6,10 @@ import ProviderHomeScreen from '../screens/ProviderHomeScreen';
 import ProviderLoginScreen from '../screens/ProviderLoginScreen';
 import ProviderRegisterScreen from '../screens/ProviderRegisterScreen';
 import VendorOnboardingScreen from '../screens/VendorOnboardingScreen';
+import CatalogDashboardScreen from '../screens/CatalogDashboardScreen';
+import ServiceFormScreen from '../screens/ServiceFormScreen';
+import ServiceImagesScreen from '../screens/ServiceImagesScreen';
+import PackageFormScreen from '../screens/PackageFormScreen';
 import { ProviderApiService } from '../services/api';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -56,10 +60,52 @@ export const RootNavigator: React.FC = () => {
           <ProviderHomeScreen
             vendorStatus={route.params?.vendorStatus}
             onNavigateToOnboarding={() => navigation.navigate('VendorOnboarding')}
+            onNavigateToCatalog={() => navigation.navigate('CatalogDashboard')}
             onLogout={async () => {
               await ProviderApiService.logout();
               navigation.replace('ProviderLogin');
             }}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CatalogDashboard">
+        {({ navigation }) => (
+          <CatalogDashboardScreen
+            onBack={() => navigation.navigate('ProviderHome')}
+            onAddService={() => navigation.navigate('ServiceForm')}
+            onEditService={(id) => navigation.navigate('ServiceForm', { serviceId: id })}
+            onManageImages={(serviceId, serviceName) =>
+              navigation.navigate('ServiceImages', { serviceId, serviceName })
+            }
+            onAddPackage={() => navigation.navigate('PackageForm')}
+            onEditPackage={(id) => navigation.navigate('PackageForm', { packageId: id })}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="ServiceForm">
+        {({ route, navigation }) => (
+          <ServiceFormScreen
+            serviceId={route.params?.serviceId}
+            onBack={() => navigation.navigate('CatalogDashboard')}
+            onSuccess={() => navigation.navigate('CatalogDashboard')}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="ServiceImages">
+        {({ route, navigation }) => (
+          <ServiceImagesScreen
+            serviceId={route.params.serviceId}
+            serviceName={route.params.serviceName}
+            onBack={() => navigation.navigate('CatalogDashboard')}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="PackageForm">
+        {({ route, navigation }) => (
+          <PackageFormScreen
+            packageId={route.params?.packageId}
+            onBack={() => navigation.navigate('CatalogDashboard')}
+            onSuccess={() => navigation.navigate('CatalogDashboard')}
           />
         )}
       </Stack.Screen>

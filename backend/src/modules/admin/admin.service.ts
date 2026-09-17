@@ -226,7 +226,7 @@ export class AdminService {
 
     validateVendorTransition(vendor.status, VendorStatus.APPROVED);
 
-    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.APPROVED, true);
+    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.APPROVED, true, true);
 
     // Audit Log
     await this.adminRepository.createAuditLog({
@@ -320,7 +320,7 @@ export class AdminService {
 
     validateVendorTransition(vendor.status, VendorStatus.SUSPENDED);
 
-    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.SUSPENDED);
+    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.SUSPENDED, undefined, false);
 
     // Audit Log
     await this.adminRepository.createAuditLog({
@@ -355,7 +355,7 @@ export class AdminService {
 
     validateVendorTransition(vendor.status, VendorStatus.APPROVED);
 
-    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.APPROVED, true);
+    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.APPROVED, true, true);
 
     // Audit Log
     await this.adminRepository.createAuditLog({

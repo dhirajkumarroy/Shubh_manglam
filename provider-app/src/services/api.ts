@@ -227,5 +227,114 @@ export class ProviderApiService {
     });
     return res.data;
   }
+
+  // =========================================================================
+  // Vendor Catalog Management API (Phase 5)
+  // =========================================================================
+
+  static async getVendorServices(params?: Record<string, any>): Promise<{ pagination: any; services: any[] }> {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    const res = await this.request<{ pagination: any; services: any[] }>(`/vendor/services${query}`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async getVendorService(id: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/services/${id}`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async createService(body: any): Promise<any> {
+    const res = await this.request<any>('/vendor/services', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async updateService(id: string, body: any): Promise<any> {
+    const res = await this.request<any>(`/vendor/services/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async deleteService(id: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/services/${id}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  }
+
+  static async addServiceImage(serviceId: string, body: { url: string; isPrimary?: boolean; sortOrder?: number }): Promise<any> {
+    const res = await this.request<any>(`/vendor/services/${serviceId}/images`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async listServiceImages(serviceId: string): Promise<any[]> {
+    const res = await this.request<any[]>(`/vendor/services/${serviceId}/images`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async deleteServiceImage(serviceId: string, imageId: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/services/${serviceId}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  }
+
+  static async setPrimaryServiceImage(serviceId: string, imageId: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/services/${serviceId}/images/${imageId}/primary`, {
+      method: 'PATCH',
+    });
+    return res.data;
+  }
+
+  static async getVendorPackages(params?: Record<string, any>): Promise<{ pagination: any; packages: any[] }> {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    const res = await this.request<{ pagination: any; packages: any[] }>(`/vendor/packages${query}`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async getVendorPackage(id: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/packages/${id}`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async createPackage(body: any): Promise<any> {
+    const res = await this.request<any>('/vendor/packages', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async updatePackage(id: string, body: any): Promise<any> {
+    const res = await this.request<any>(`/vendor/packages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async deletePackage(id: string): Promise<any> {
+    const res = await this.request<any>(`/vendor/packages/${id}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  }
 }
 

@@ -7,6 +7,12 @@ import adminRouter from '../modules/admin/admin.routes';
 import categoryRouter from '../modules/categories/category.routes';
 import vendorRouter from '../modules/vendors/vendor.routes';
 import uploadRouter from '../modules/uploads/upload.routes';
+import {
+  vendorCatalogRouter,
+  publicServicesRouter,
+  publicPackagesRouter,
+  adminCatalogRouter,
+} from '../modules/catalog/catalog.routes';
 
 const router = Router();
 
@@ -45,8 +51,12 @@ router.use('/auth', authRouter);
 router.use('/users', userRouter);
 router.use('/notifications', notificationRouter);
 router.use('/admin', adminRouter);
+router.use('/admin', adminCatalogRouter);
 router.use('/categories', categoryRouter);
 router.use('/vendor', vendorRouter);
+router.use('/vendor', vendorCatalogRouter);
+router.use('/services', publicServicesRouter);
+router.use('/packages', publicPackagesRouter);
 router.use('/uploads', uploadRouter);
 
 export default router;

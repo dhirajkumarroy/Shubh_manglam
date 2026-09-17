@@ -6,6 +6,8 @@ import {
   Store, 
   Calendar, 
   Tag, 
+  Layers,
+  Package,
   CreditCard, 
   Star, 
   Settings, 
@@ -17,11 +19,12 @@ import { useAuth } from '../store/AuthContext';
 const NAVIGATION_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Service Providers', path: '/providers', icon: Store },
+  { name: 'Categories', path: '/categories', icon: Tag },
+  { name: 'Catalog Services', path: '/services', icon: Layers },
+  { name: 'Package Combos', path: '/packages', icon: Package },
   { name: 'Customers', path: '/users', icon: Users },
   { name: 'Event Bookings', path: '/bookings', icon: Calendar },
-  { name: 'Categories & Services', path: '/categories', icon: Tag },
   { name: 'Payments & Payouts', path: '/payments', icon: CreditCard },
-
   { name: 'Reviews & Quality', path: '/reviews', icon: Star },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];

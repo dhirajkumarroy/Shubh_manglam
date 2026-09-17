@@ -254,9 +254,11 @@ async function runVendorTests() {
     console.log('\n===================================================');
     console.log(`Phase 4 Test Results: ${passed} PASSED, ${failed} FAILED`);
     console.log('===================================================');
+    await prisma.$disconnect();
     if (failed > 0) {
       process.exit(1);
     }
+    process.exit(0);
   }
 }
 
