@@ -5,14 +5,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { ProviderApiService, ProviderAuthData } from '../services/api';
+import GoogleSignInModal, { ProviderGoogleAccount } from '../components/GoogleSignInModal';
 
 interface ProviderRegisterScreenProps {
   onSuccess: (data: ProviderAuthData) => void;
@@ -30,6 +31,8 @@ export const ProviderRegisterScreen: React.FC<ProviderRegisterScreenProps> = ({
   const [city, setCity] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleModalVisible, setGoogleModalVisible] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const handleRegister = async () => {
     if (!name || !businessName || !email || !phone || !password) {
@@ -60,23 +63,25 @@ export const ProviderRegisterScreen: React.FC<ProviderRegisterScreenProps> = ({
     }
   };
 
-  const handleGoogleRegister = async () => {
+  const handleGoogleAccountSelect = async (account: ProviderGoogleAccount) => {
     setLoading(true);
+    setGoogleError(null);
     try {
       const data = await ProviderApiService.googleLogin({
-        idToken: `google_provider_${Date.now()}`,
-        email: 'provider@gmail.com',
-        name: name.trim() || 'Royal Events Partner',
-        businessName: businessName.trim() || 'Royal Events & Celebrations',
+        idToken: `google_${account.email.toLowerCase().trim()}`,
+        email: account.email.toLowerCase().trim(),
+        name: account.name.trim(),
+        businessName: account.businessName?.trim() || businessName.trim() || undefined,
       });
 
+      setGoogleModalVisible(false);
       Alert.alert(
         'Google Registration Completed',
         'Your provider account is ready. Your profile is active and pending administrative verification.'
       );
       onSuccess(data);
     } catch (err: any) {
-      Alert.alert('Google Sign-in Failed', err.message || 'Unable to register via Google.');
+      setGoogleError(err.message || 'Unable to register via Google.');
     } finally {
       setLoading(false);
     }
@@ -173,7 +178,10 @@ export const ProviderRegisterScreen: React.FC<ProviderRegisterScreenProps> = ({
           {/* Google Sign In */}
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={handleGoogleRegister}
+            onPress={() => {
+              setGoogleError(null);
+              setGoogleModalVisible(true);
+            }}
             disabled={loading}
           >
             <Text style={styles.googleIcon}>🌐</Text>
@@ -188,6 +196,14 @@ export const ProviderRegisterScreen: React.FC<ProviderRegisterScreenProps> = ({
           </View>
         </View>
       </ScrollView>
+
+      <GoogleSignInModal
+        visible={googleModalVisible}
+        onClose={() => setGoogleModalVisible(false)}
+        onSuccess={handleGoogleAccountSelect}
+        loading={loading}
+        error={googleError}
+      />
     </SafeAreaView>
   );
 };

@@ -368,11 +368,44 @@ export class AuthRepository {
   }
 
   async linkOAuthAccount(userId: string, provider: string, providerAccountId: string) {
-    return prisma.oAuthAccount.create({
-      data: {
+    return prisma.oAuthAccount.upsert({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId,
+        },
+      },
+      create: {
         userId,
         provider,
         providerAccountId,
+      },
+      update: {
+        userId,
+      },
+    });
+  }
+
+  async createVendorProfile(
+    userId: string,
+    vendorData: { businessName: string; slug: string; phone: string; email: string }
+  ) {
+    return prisma.vendor.create({
+      data: {
+        userId,
+        businessName: vendorData.businessName,
+        slug: vendorData.slug,
+        phone: vendorData.phone,
+        email: vendorData.email,
+        addressLine1: 'Main Market',
+        city: 'Panipat',
+        state: 'Haryana',
+        pincode: '132103',
+        latitude: 29.3909,
+        longitude: 76.9635,
+        status: 'PENDING',
+        isActive: false,
+        isVerified: false,
       },
     });
   }

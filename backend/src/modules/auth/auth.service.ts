@@ -613,9 +613,12 @@ export class AuthService {
   async googleAuth(dto: GoogleAuthDto, meta?: DeviceMetadata): Promise<AuthResponse> {
     const { idToken, role, businessName, email: clientEmail, name: clientName, avatar: clientAvatar } = dto;
 
-    // Generate consistent Google subject identifier from idToken
-    const googleSub = hashToken(idToken).slice(0, 24);
-    const targetEmail = clientEmail || `google.${googleSub.slice(0, 8)}@gmail.com`;
+    // Generate consistent Google subject identifier from email or idToken
+    const cleanEmail = (clientEmail || '').toLowerCase().trim();
+    const tokenSource = cleanEmail || idToken;
+    const googleSub = hashToken(tokenSource).slice(0, 24);
+    const targetEmail = cleanEmail || `google.${googleSub.slice(0, 8)}@gmail.com`;
+    const targetName = clientName?.trim() || 'Google User';
 
     let oauthAccount = await this.authRepository.findOAuthAccount('GOOGLE', googleSub);
 
@@ -627,11 +630,15 @@ export class AuthService {
       const existingUser = await this.authRepository.findByEmail(targetEmail);
 
       if (existingUser) {
-        await this.authRepository.linkOAuthAccount(existingUser.id, 'GOOGLE', googleSub);
+        try {
+          await this.authRepository.linkOAuthAccount(existingUser.id, 'GOOGLE', googleSub);
+        } catch {
+          // If already linked, proceed
+        }
         user = existingUser;
       } else {
         const dummyPasswordHash = await hashPassword(generateSecureToken(16));
-        const baseSlug = (businessName || 'vendor')
+        const baseSlug = (businessName || targetName || 'vendor')
           .toLowerCase()
           .trim()
           .replace(/[^\w\s-]/g, '')
@@ -639,7 +646,7 @@ export class AuthService {
 
         user = await this.authRepository.createOAuthUser(
           {
-            name: clientName || 'Google User',
+            name: targetName,
             email: targetEmail,
             phone: `+9190000${Math.floor(10000 + Math.random() * 90000)}`,
             avatar: clientAvatar || null,
@@ -651,7 +658,7 @@ export class AuthService {
           googleSub,
           role === 'VENDOR'
             ? {
-                businessName: businessName || `${clientName || 'Partner'} Events & Celebrations`,
+                businessName: businessName?.trim() || `${targetName} Events & Celebrations`,
                 slug: `${baseSlug}-${Date.now().toString().slice(-4)}`,
                 phone: `+9190000${Math.floor(10000 + Math.random() * 90000)}`,
                 email: targetEmail,
@@ -659,6 +666,23 @@ export class AuthService {
             : undefined
         );
       }
+    }
+
+    // If logging in as VENDOR and vendorProfile does not exist yet, provision it
+    if (role === 'VENDOR' && !user.vendorProfile) {
+      const baseSlug = (businessName || user.name || 'vendor')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-');
+
+      const newVendor = await this.authRepository.createVendorProfile(user.id, {
+        businessName: businessName?.trim() || `${user.name} Events & Services`,
+        slug: `${baseSlug}-${Date.now().toString().slice(-4)}`,
+        phone: user.phone || `+9190000${Math.floor(10000 + Math.random() * 90000)}`,
+        email: user.email,
+      });
+      user.vendorProfile = newVendor;
     }
 
     const tokens = await this.createSessionAndTokens(user, meta);

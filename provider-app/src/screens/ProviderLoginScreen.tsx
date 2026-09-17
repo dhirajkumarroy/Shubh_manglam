@@ -5,13 +5,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { ProviderApiService, ProviderAuthData } from '../services/api';
+import GoogleSignInModal, { ProviderGoogleAccount } from '../components/GoogleSignInModal';
 
 interface ProviderLoginScreenProps {
   onSuccess: (data: ProviderAuthData) => void;
@@ -25,6 +26,8 @@ export const ProviderLoginScreen: React.FC<ProviderLoginScreenProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleModalVisible, setGoogleModalVisible] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -46,18 +49,20 @@ export const ProviderLoginScreen: React.FC<ProviderLoginScreenProps> = ({
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleAccountSelect = async (account: ProviderGoogleAccount) => {
     setLoading(true);
+    setGoogleError(null);
     try {
       const data = await ProviderApiService.googleLogin({
-        idToken: `google_provider_${Date.now()}`,
-        email: 'provider@gmail.com',
-        name: 'Royal Events Partner',
-        businessName: 'Royal Events & Decorations',
+        idToken: `google_${account.email.toLowerCase().trim()}`,
+        email: account.email.toLowerCase().trim(),
+        name: account.name.trim(),
+        businessName: account.businessName?.trim(),
       });
+      setGoogleModalVisible(false);
       onSuccess(data);
     } catch (err: any) {
-      Alert.alert('Google Sign-in Failed', err.message || 'Unable to sign in with Google.');
+      setGoogleError(err.message || 'Unable to sign in with Google.');
     } finally {
       setLoading(false);
     }
@@ -117,7 +122,10 @@ export const ProviderLoginScreen: React.FC<ProviderLoginScreenProps> = ({
           {/* Google Button */}
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={handleGoogleLogin}
+            onPress={() => {
+              setGoogleError(null);
+              setGoogleModalVisible(true);
+            }}
             disabled={loading}
           >
             <Text style={styles.googleIcon}>🌐</Text>
@@ -132,6 +140,14 @@ export const ProviderLoginScreen: React.FC<ProviderLoginScreenProps> = ({
           </View>
         </View>
       </View>
+
+      <GoogleSignInModal
+        visible={googleModalVisible}
+        onClose={() => setGoogleModalVisible(false)}
+        onSuccess={handleGoogleAccountSelect}
+        loading={loading}
+        error={googleError}
+      />
     </SafeAreaView>
   );
 };

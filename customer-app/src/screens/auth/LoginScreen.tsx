@@ -22,6 +22,8 @@ import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 
+import GoogleSignInModal, { GoogleAccount } from '../../components/GoogleSignInModal';
+
 const loginSchema = z.object({
   email: z
     .string()
@@ -39,6 +41,7 @@ export const LoginScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { loading, error } = useAppSelector((state) => state.auth);
+  const [googleModalVisible, setGoogleModalVisible] = React.useState(false);
 
   const {
     control,
@@ -57,15 +60,22 @@ export const LoginScreen: React.FC = () => {
     dispatch(loginUser(data));
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleAccountSelect = (account: GoogleAccount) => {
     dispatch(clearError());
     dispatch(
       googleLogin({
-        idToken: `google_oauth_${Date.now()}`,
-        email: 'dhiraj.customer@gmail.com',
-        name: 'Dhiraj Kumar',
+        idToken: `google_${account.email.toLowerCase().trim()}`,
+        email: account.email.toLowerCase().trim(),
+        name: account.name.trim(),
       })
-    );
+    )
+      .unwrap()
+      .then(() => {
+        setGoogleModalVisible(false);
+      })
+      .catch(() => {
+        // Handled via Redux state error displayed inside modal
+      });
   };
 
   return (
@@ -140,7 +150,10 @@ export const LoginScreen: React.FC = () => {
           {/* Google Sign In Button */}
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={handleGoogleLogin}
+            onPress={() => {
+              dispatch(clearError());
+              setGoogleModalVisible(true);
+            }}
             disabled={loading}
           >
             <Text style={styles.googleIcon}>🌐</Text>
@@ -162,6 +175,15 @@ export const LoginScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Dynamic Google Sign-In Sheet */}
+      <GoogleSignInModal
+        visible={googleModalVisible}
+        onClose={() => setGoogleModalVisible(false)}
+        onSuccess={handleGoogleAccountSelect}
+        loading={loading}
+        error={error}
+      />
     </KeyboardAvoidingView>
   );
 };

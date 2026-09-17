@@ -5,11 +5,11 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { ProviderApiService } from '../services/api';
 import { CatalogServiceItem, CatalogPackageItem } from '../types';

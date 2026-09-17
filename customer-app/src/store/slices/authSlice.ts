@@ -85,7 +85,18 @@ export const registerUser = createAsyncThunk(
   ) => {
     try {
       const response = await apiClient.post('/auth/customer/register', userData);
-      return response.data.message || 'Registration successful. Verification link sent.';
+      const { user, tokens } = response.data.data;
+      const accessToken = tokens?.accessToken;
+      const refreshToken = tokens?.refreshToken;
+
+      if (accessToken) {
+        await SecureStore.setItemAsync('accessToken', accessToken);
+        if (refreshToken) {
+          await SecureStore.setItemAsync('refreshToken', refreshToken);
+        }
+      }
+
+      return { user, token: accessToken, message: response.data.message };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Registration failed.');
     }
@@ -212,8 +223,13 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     });
-    builder.addCase(registerUser.fulfilled, (state) => {
+    builder.addCase(registerUser.fulfilled, (state, action) => {
       state.loading = false;
+      if (action.payload.token && action.payload.user) {
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+      }
       state.error = null;
     });
     builder.addCase(registerUser.rejected, (state, action) => {

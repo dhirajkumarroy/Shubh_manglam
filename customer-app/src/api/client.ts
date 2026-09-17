@@ -110,11 +110,30 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const errorMessage =
-      error.response?.data?.message ||
-      error.response?.data?.errors ||
-      error.message ||
-      'An unexpected error occurred.';
+    let errorMessage = error.response?.data?.message;
+
+    if (error.response?.data?.errors) {
+      const errs = error.response.data.errors;
+      if (Array.isArray(errs) && errs.length > 0) {
+        const details = errs
+          .map((e: any) => e.message || (e.field ? `${e.field}: invalid` : null))
+          .filter(Boolean)
+          .join(', ');
+        if (details) {
+          errorMessage = errorMessage ? `${errorMessage}: ${details}` : details;
+        }
+      } else if (typeof errs === 'string') {
+        errorMessage = errs;
+      }
+    }
+
+    if (!errorMessage && error.message) {
+      errorMessage = error.message;
+    }
+
+    if (!errorMessage) {
+      errorMessage = 'An unexpected error occurred.';
+    }
 
     return Promise.reject(new Error(errorMessage));
   }

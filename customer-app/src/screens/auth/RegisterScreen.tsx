@@ -23,6 +23,8 @@ import colors from '../../theme/colors';
 import spacing from '../../theme/spacing';
 import typography from '../../theme/typography';
 
+import GoogleSignInModal, { GoogleAccount } from '../../components/GoogleSignInModal';
+
 const registerSchema = z.object({
   name: z
     .string()
@@ -51,6 +53,7 @@ export const RegisterScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { loading, error } = useAppSelector((state) => state.auth);
+  const [googleModalVisible, setGoogleModalVisible] = React.useState(false);
 
   const {
     control,
@@ -71,27 +74,33 @@ export const RegisterScreen: React.FC = () => {
     dispatch(clearError());
     dispatch(registerUser(data))
       .unwrap()
-      .then((message) => {
+      .then(() => {
         Alert.alert(
-          'Registration Successful',
-          message || 'Please check your email to verify your OTP.',
-          [{ text: 'Go to Login', onPress: () => navigation.navigate('Login') }]
+          'Registration Successful!',
+          'Welcome to Shubh Mangalam. Your profile has been created successfully.'
         );
       })
       .catch((err) => {
-        // Handled in auth state error
+        Alert.alert('Registration Failed', err || 'Unable to register account.');
       });
   };
 
-  const handleGoogleRegister = () => {
+  const handleGoogleAccountSelect = (account: GoogleAccount) => {
     dispatch(clearError());
     dispatch(
       googleLogin({
-        idToken: `google_oauth_${Date.now()}`,
-        email: 'dhiraj.customer@gmail.com',
-        name: 'Dhiraj Kumar',
+        idToken: `google_${account.email.toLowerCase().trim()}`,
+        email: account.email.toLowerCase().trim(),
+        name: account.name.trim(),
       })
-    );
+    )
+      .unwrap()
+      .then(() => {
+        setGoogleModalVisible(false);
+      })
+      .catch(() => {
+        // Handled in Redux error state
+      });
   };
 
   return (
@@ -199,7 +208,10 @@ export const RegisterScreen: React.FC = () => {
           {/* Google Sign Up Button */}
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={handleGoogleRegister}
+            onPress={() => {
+              dispatch(clearError());
+              setGoogleModalVisible(true);
+            }}
             disabled={loading}
           >
             <Text style={styles.googleIcon}>🌐</Text>
@@ -221,6 +233,15 @@ export const RegisterScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Dynamic Google Sign-In Sheet */}
+      <GoogleSignInModal
+        visible={googleModalVisible}
+        onClose={() => setGoogleModalVisible(false)}
+        onSuccess={handleGoogleAccountSelect}
+        loading={loading}
+        error={error}
+      />
     </KeyboardAvoidingView>
   );
 };

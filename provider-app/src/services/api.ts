@@ -101,7 +101,14 @@ export class ProviderApiService {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'API request failed');
+      let errMsg = data.message || 'API request failed';
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        const details = data.errors.map((e: any) => e.message || (e.field ? `${e.field}: invalid` : null)).filter(Boolean).join(', ');
+        if (details) {
+          errMsg = `${errMsg}: ${details}`;
+        }
+      }
+      throw new Error(errMsg);
     }
     return data;
   }

@@ -5,10 +5,10 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import VendorStatusBanner from '../components/VendorStatusBanner';
 import { ProviderApiService } from '../services/api';
