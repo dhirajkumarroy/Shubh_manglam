@@ -11,6 +11,8 @@ import {
   UserCheck,
   Calendar,
   ChevronRight,
+  ChevronLeft,
+  Search,
   AlertCircle,
   RefreshCw,
   Sparkles,
@@ -24,6 +26,11 @@ export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [inquiryData, setInquiryData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Provider Analytics Pagination & Search State
+  const [providerSearch, setProviderSearch] = useState<string>('');
+  const [providerPage, setProviderPage] = useState<number>(1);
+  const [providerPageSize, setProviderPageSize] = useState<number>(4);
 
   const fetchStats = async () => {
     try {
@@ -355,107 +362,221 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Per-Provider Request Acceptance Breakdown Table */}
-        <div className="bg-white rounded-2xl border border-[#E7E0D8] shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-[#E7E0D8] flex items-center justify-between bg-[#FAF8F5]">
-            <div>
-              <h4 className="font-extrabold text-sm text-[#1C1917]">Provider Response & Fulfillment Analytics</h4>
-              <p className="text-xs text-[#78716C]">Breakdown of inquiries received, accepted, and rejected by each verified service partner.</p>
-            </div>
-          </div>
+        {(() => {
+          const allProviders = (inquiryData?.providers as any[]) || [];
+          const filteredProviders = allProviders.filter((p: any) => {
+            if (!providerSearch.trim()) return true;
+            const query = providerSearch.toLowerCase().trim();
+            return (
+              p.businessName?.toLowerCase().includes(query) ||
+              p.city?.toLowerCase().includes(query) ||
+              p.phone?.includes(query) ||
+              p.categories?.some((cat: string) => cat.toLowerCase().includes(query))
+            );
+          });
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#E7E0D8] bg-[#FAF8F5]/60 text-[#78716C] text-[11px] uppercase tracking-wider font-bold">
-                  <th className="py-3 px-5">Provider Business</th>
-                  <th className="py-3 px-4">Celebration Category</th>
-                  <th className="py-3 px-4 text-center">Total Inquiries</th>
-                  <th className="py-3 px-4 text-center">Accepted</th>
-                  <th className="py-3 px-4 text-center">Declined</th>
-                  <th className="py-3 px-4 text-center">Pending</th>
-                  <th className="py-3 px-4">Acceptance Rate</th>
-                  <th className="py-3 px-5 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E7E0D8] text-xs">
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-[#78716C]">
-                      Loading provider performance...
-                    </td>
-                  </tr>
-                ) : !inquiryData?.providers || inquiryData.providers.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-[#78716C]">
-                      No provider inquiries registered yet.
-                    </td>
-                  </tr>
-                ) : (
-                  inquiryData.providers.map((p: any) => {
-                    const isHighAcceptance = p.acceptanceRate >= 70;
-                    return (
-                      <tr key={p.vendorId} className="hover:bg-[#FAF8F5]/50 transition">
-                        <td className="py-3 px-5">
-                          <div className="font-extrabold text-[#1C1917]">{p.businessName}</div>
-                          <div className="text-[11px] text-[#78716C]">📍 {p.city} • 📞 {p.phone}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {p.categories?.map((cat: string) => (
-                              <span key={cat} className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                {cat}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center font-extrabold text-[#1C1917]">
-                          {p.totalRequests}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-emerald-100 text-emerald-800">
-                            {p.acceptedCount}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-rose-100 text-rose-800">
-                            {p.rejectedCount}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-amber-100 text-amber-800">
-                            {p.pendingCount}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 min-w-[140px]">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex-1 bg-stone-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${
-                                  isHighAcceptance ? 'bg-emerald-500' : p.acceptanceRate > 0 ? 'bg-amber-500' : 'bg-stone-400'
-                                }`}
-                                style={{ width: `${p.acceptanceRate}%` }}
-                              />
-                            </div>
-                            <span className="font-bold text-xs text-[#1C1917]">{p.acceptanceRate}%</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-5 text-right">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                            p.acceptedCount > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            p.pendingCount > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                            'bg-stone-50 text-stone-600 border border-stone-200'
-                          }`}>
-                            {p.acceptedCount > 0 ? 'Active Partner' : p.pendingCount > 0 ? 'Pending Lead' : 'Ready'}
-                          </span>
+          const totalProviderPages = Math.max(1, Math.ceil(filteredProviders.length / providerPageSize));
+          const safeCurrentPage = Math.min(providerPage, totalProviderPages);
+          const startIndex = (safeCurrentPage - 1) * providerPageSize;
+          const endIndex = Math.min(startIndex + providerPageSize, filteredProviders.length);
+          const paginatedProviders = filteredProviders.slice(startIndex, endIndex);
+
+          return (
+            <div className="bg-white rounded-2xl border border-[#E7E0D8] shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-[#E7E0D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF8F5]">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-extrabold text-sm text-[#1C1917]">Provider Response & Fulfillment Analytics</h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                      {filteredProviders.length} Partners
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#78716C]">Breakdown of inquiries received, accepted, and rejected by each verified service partner.</p>
+                </div>
+
+                <div className="flex items-center space-x-2.5">
+                  {/* Compact Search Input */}
+                  <div className="relative w-48 sm:w-56">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
+                    <input
+                      type="text"
+                      placeholder="Filter by partner or city..."
+                      value={providerSearch}
+                      onChange={(e) => {
+                        setProviderSearch(e.target.value);
+                        setProviderPage(1);
+                      }}
+                      className="w-full pl-8 pr-6 py-1.5 text-xs rounded-xl border border-[#E7E0D8] bg-white focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary transition"
+                    />
+                    {providerSearch ? (
+                      <button
+                        onClick={() => {
+                          setProviderSearch('');
+                          setProviderPage(1);
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#A8A29E] hover:text-[#1C1917]"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {/* Page Size Selector */}
+                  <select
+                    value={providerPageSize}
+                    onChange={(e) => {
+                      setProviderPageSize(Number(e.target.value));
+                      setProviderPage(1);
+                    }}
+                    className="px-2.5 py-1.5 text-xs rounded-xl border border-[#E7E0D8] bg-white font-semibold text-[#57534E] focus:outline-none focus:border-primary cursor-pointer"
+                  >
+                    <option value={4}>4 / page</option>
+                    <option value={8}>8 / page</option>
+                    <option value={15}>15 / page</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#E7E0D8] bg-[#FAF8F5]/60 text-[#78716C] text-[11px] uppercase tracking-wider font-bold">
+                      <th className="py-3 px-5">Provider Business</th>
+                      <th className="py-3 px-4">Celebration Category</th>
+                      <th className="py-3 px-4 text-center">Total Inquiries</th>
+                      <th className="py-3 px-4 text-center">Accepted</th>
+                      <th className="py-3 px-4 text-center">Declined</th>
+                      <th className="py-3 px-4 text-center">Pending</th>
+                      <th className="py-3 px-4">Acceptance Rate</th>
+                      <th className="py-3 px-5 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E7E0D8] text-xs">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-[#78716C]">
+                          Loading provider performance...
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    ) : paginatedProviders.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-[#78716C]">
+                          {providerSearch ? 'No partners match your filter query.' : 'No provider inquiries registered yet.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedProviders.map((p: any) => {
+                        const isHighAcceptance = p.acceptanceRate >= 70;
+                        return (
+                          <tr key={p.vendorId} className="hover:bg-[#FAF8F5]/50 transition">
+                            <td className="py-3 px-5">
+                              <div className="font-extrabold text-[#1C1917]">{p.businessName}</div>
+                              <div className="text-[11px] text-[#78716C]">📍 {p.city} • 📞 {p.phone}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-wrap gap-1">
+                                {p.categories?.map((cat: string) => (
+                                  <span key={cat} className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    {cat}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-center font-extrabold text-[#1C1917]">
+                              {p.totalRequests}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-emerald-100 text-emerald-800">
+                                {p.acceptedCount}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-rose-100 text-rose-800">
+                                {p.rejectedCount}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-amber-100 text-amber-800">
+                                {p.pendingCount}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 min-w-[140px]">
+                              <div className="flex items-center space-x-2">
+                                <div className="flex-1 bg-stone-200 rounded-full h-2 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      isHighAcceptance ? 'bg-emerald-500' : p.acceptanceRate > 0 ? 'bg-amber-500' : 'bg-stone-400'
+                                    }`}
+                                    style={{ width: `${p.acceptanceRate}%` }}
+                                  />
+                                </div>
+                                <span className="font-bold text-xs text-[#1C1917]">{p.acceptanceRate}%</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-5 text-right">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                                p.acceptedCount > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                p.pendingCount > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                                'bg-stone-50 text-stone-600 border border-stone-200'
+                              }`}>
+                                {p.acceptedCount > 0 ? 'Active Partner' : p.pendingCount > 0 ? 'Pending Lead' : 'Ready'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls Footer */}
+              {filteredProviders.length > 0 && (
+                <div className="p-3.5 border-t border-[#E7E0D8] bg-[#FAF8F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="text-[#78716C]">
+                    Showing <strong className="text-[#1C1917]">{startIndex + 1}</strong> to <strong className="text-[#1C1917]">{endIndex}</strong> of <strong className="text-[#1C1917]">{filteredProviders.length}</strong> partners
+                  </div>
+
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => setProviderPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={safeCurrentPage <= 1}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg border border-[#E7E0D8] bg-white text-xs font-semibold text-[#57534E] hover:bg-[#F5EFE6] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </button>
+
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: totalProviderPages }, (_, i) => i + 1).map((num) => (
+                        <button
+                          key={num}
+                          onClick={() => setProviderPage(num)}
+                          className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                            num === safeCurrentPage
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-white text-[#57534E] border border-[#E7E0D8] hover:bg-[#F5EFE6]'
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setProviderPage((prev) => Math.min(prev + 1, totalProviderPages))}
+                      disabled={safeCurrentPage >= totalProviderPages}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg border border-[#E7E0D8] bg-white text-xs font-semibold text-[#57534E] hover:bg-[#F5EFE6] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Recent User Registrations Table */}
