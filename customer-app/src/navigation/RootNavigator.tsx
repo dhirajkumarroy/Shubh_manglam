@@ -24,6 +24,8 @@ import UserBottomBar from '../components/UserBottomBar';
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
 
 // Home & Explore Screens
 import HomeScreen from '../screens/home/HomeScreen';
@@ -73,6 +75,8 @@ const AuthStackNavigator = () => {
     <AuthStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="VerifyEmail" component={EmailVerificationScreen} />
     </AuthStack.Navigator>
   );
 };

@@ -16,6 +16,7 @@ import {
 } from '../categories/category.validation';
 import { ResponseDto } from '../../common/dto/api-response.dto';
 import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
+import { adminImportService } from './admin-import.service';
 
 export class AdminController {
   private adminService: AdminService;
@@ -223,6 +224,20 @@ export class AdminController {
       const adminId = this.getAdminId(req);
       const result = await this.adminService.removeCategory(id, adminId);
       res.status(200).json(ResponseDto.success(result.message, result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Bulk smart import for categories, subcategories, and celebrations
+   */
+  bulkSmartImport = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const adminId = this.getAdminId(req);
+      const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+      const result = await adminImportService.executeSmartImport(req.body, adminId, ipAddress);
+      res.status(200).json(ResponseDto.success('Smart Excel import completed successfully.', result));
     } catch (error) {
       next(error);
     }

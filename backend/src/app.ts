@@ -16,6 +16,7 @@ import { NotFoundError } from './common/utils/app-error';
 import { randomUUID } from 'crypto';
 import { redisConnection } from './config/redis';
 import { prisma } from './config/database';
+import { renderResetPasswordHtml } from './modules/auth/reset-password-page.html';
 
 const app: Application = express();
 
@@ -26,7 +27,19 @@ app.use((req: any, _res: Response, next: NextFunction) => {
 });
 
 // 2. Security Headers Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+  })
+);
 
 // 3. Cross-Origin Resource Sharing
 const allowedOrigins = [
@@ -146,6 +159,16 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // 8. Base Routes
 app.use(env.API_PREFIX, indexRouter);
+
+// Password Reset Web Page
+app.get('/reset-password', (req: Request, res: Response) => {
+  const token = (req.query.token as string) || '';
+  const email = (req.query.email as string) || '';
+  const apiBaseUrl = `${req.protocol}://${req.get('host')}${env.API_PREFIX}`;
+  const html = renderResetPasswordHtml({ token, email, apiBaseUrl });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(html);
+});
 
 // Redirect root URL to swagger docs for premium dev UX
 app.get('/', (_req: Request, res: Response) => {

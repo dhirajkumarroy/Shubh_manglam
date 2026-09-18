@@ -19,6 +19,8 @@ import {
 import { ResponseDto } from '../../common/dto/api-response.dto';
 import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 import { UnauthorizedError } from '../../common/utils/app-error';
+import { renderResetPasswordHtml } from './reset-password-page.html';
+import { env } from '../../config/env';
 
 export class AuthController {
   private authService: AuthService;
@@ -203,12 +205,22 @@ export class AuthController {
   forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const validatedBody = forgotPasswordSchema.parse(req.body);
-      const result = await this.authService.forgotPassword(validatedBody);
+      const origin = `${req.protocol}://${req.get('host')}`;
+      const result = await this.authService.forgotPassword(validatedBody, origin);
 
-      res.status(200).json(ResponseDto.success(result.message));
+      res.status(200).json(ResponseDto.success(result.message, result));
     } catch (error) {
       next(error);
     }
+  };
+
+  renderResetPasswordPage = (req: Request, res: Response): void => {
+    const token = (req.query.token as string) || '';
+    const email = (req.query.email as string) || '';
+    const apiBaseUrl = `${req.protocol}://${req.get('host')}${env.API_PREFIX}`;
+    const html = renderResetPasswordHtml({ token, email, apiBaseUrl });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.status(200).send(html);
   };
 
   resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

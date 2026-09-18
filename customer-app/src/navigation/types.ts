@@ -1,6 +1,8 @@
 export type AuthStackParamList = {
-  Login: undefined;
+  Login: { email?: string } | undefined;
   Register: undefined;
+  ForgotPassword: { email?: string } | undefined;
+  VerifyEmail: { email: string; fromRegistration?: boolean };
 };
 
 export type HomeStackParamList = {

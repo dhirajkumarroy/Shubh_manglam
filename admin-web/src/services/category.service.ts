@@ -94,6 +94,34 @@ class AdminCategoryService {
       method: 'DELETE',
     });
   }
+
+  async bulkSmartImport(payload: {
+    mode?: 'UPSERT' | 'CREATE_ONLY';
+    categories?: any[];
+    subcategories?: any[];
+    celebrations?: any[];
+  }): Promise<{
+    summary: {
+      categoriesCreated: number;
+      categoriesUpdated: number;
+      subcategoriesCreated: number;
+      subcategoriesUpdated: number;
+      celebrationsCreated: number;
+      celebrationsUpdated: number;
+      mappingsCreated: number;
+      totalProcessed: number;
+    };
+    errors: Array<{
+      sheet: string;
+      item: string;
+      error: string;
+    }>;
+  }> {
+    return this.request('/admin/smart-import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
 }
 
 export const adminCategoryService = new AdminCategoryService();
