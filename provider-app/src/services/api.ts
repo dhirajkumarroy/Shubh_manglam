@@ -6,7 +6,7 @@ import {
   VendorReviewsResponse,
 } from '../types';
 
-export const API_BASE_URL = 'http://10.44.62.6:8000/api/v1';
+export const API_BASE_URL = 'http://192.168.0.102:8000/api/v1';
 
 export function resolveMediaUrl(url?: string | null): string {
   if (!url) return '';
@@ -29,6 +29,7 @@ export interface ProviderAuthUser {
 
 export interface ProviderVendorProfile {
   id: string;
+  partnerAccountId?: string | null;
   businessName: string;
   slug: string;
   status: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
