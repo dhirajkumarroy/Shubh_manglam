@@ -55,7 +55,7 @@ export const AdminLayout: React.FC = () => {
             </div>
             <div>
               <h1 className="font-extrabold text-base text-[#1C1917] tracking-tight">Shubh Ausar</h1>
-              <p className="text-xs text-primary font-medium">शुभ अवसर • Admin Console</p>
+              <p className="text-xs text-primary font-medium">Marketplace Admin Console</p>
             </div>
           </div>
         </div>

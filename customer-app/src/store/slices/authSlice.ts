@@ -161,6 +161,14 @@ const authSlice = createSlice({
     updateUser: (state, action: PayloadAction<UserProfile>) => {
       state.user = action.payload;
     },
+    markEmailVerifiedSuccess: (state) => {
+      if (state.user) {
+        state.user.emailVerified = true;
+      }
+      if (state.token) {
+        state.isAuthenticated = true;
+      }
+    },
   },
   extraReducers: (builder) => {
     // loadStoredToken
@@ -228,7 +236,9 @@ const authSlice = createSlice({
       if (action.payload.token && action.payload.user) {
         state.token = action.payload.token;
         state.user = action.payload.user;
-        state.isAuthenticated = true;
+        // If email verification is required, keep isAuthenticated = false
+        // so the user can complete the VerifyEmailScreen flow
+        state.isAuthenticated = !!action.payload.user.emailVerified;
       }
       state.error = null;
     });
@@ -247,5 +257,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, updateUser } = authSlice.actions;
+export const { clearError, updateUser, markEmailVerifiedSuccess } = authSlice.actions;
 export default authSlice.reducer;

@@ -33,12 +33,13 @@ router.post('/vendors/:vendorId/reactivate', controller.reactivateVendor);
 router.patch('/vendors/:vendorId/documents/:documentId', controller.reviewDocument);
 
 // =========================================================================
-// Category Management
+// Category Management & Smart Excel Import
 // =========================================================================
 router.get('/categories', controller.listCategories);
 router.post('/categories', controller.createCategory);
 router.patch('/categories/:id', controller.updateCategory);
 router.delete('/categories/:id', controller.deleteCategory);
+router.post('/smart-import', controller.bulkSmartImport);
 
 // =========================================================================
 // Document Requirements Management

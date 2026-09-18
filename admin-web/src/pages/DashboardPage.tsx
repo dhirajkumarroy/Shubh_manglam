@@ -68,7 +68,7 @@ export const DashboardPage: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-amber-200">Central Marketplace Console</span>
             <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Live Analytics</span>
           </div>
-          <h2 className="text-2xl font-black mt-1">Shubh Ausar — शुभ अवसर Executive Overview</h2>
+          <h2 className="text-2xl font-black mt-1">Shubh Ausar Executive Overview</h2>
           <p className="text-rose-100 text-sm mt-1 leading-relaxed">
             Local celebration & event-services marketplace orchestration. Monitoring live database entities across Vendors, Categories, Events, and User Accounts.
           </p>

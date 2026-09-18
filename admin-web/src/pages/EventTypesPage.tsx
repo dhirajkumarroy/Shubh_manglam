@@ -7,15 +7,18 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertTriangle, 
-  RefreshCw 
+  RefreshCw,
+  FileSpreadsheet
 } from 'lucide-react';
 import { eventTypeService, EventTypeItem } from '../services/eventType.service';
+import { SmartExcelImportModal } from '../components/SmartExcelImportModal';
 
 export const EventTypesPage: React.FC = () => {
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [search, setSearch] = useState<string>('');
+  const [showExcelModal, setShowExcelModal] = useState<boolean>(false);
 
   // Modal state
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -117,6 +120,14 @@ export const EventTypesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowExcelModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#881337] to-[#C2410C] hover:from-[#6B0D2B] hover:to-[#9A3412] text-white rounded-xl shadow-sm transition font-medium text-sm"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Smart Excel Import</span>
+          </button>
+
           <button
             onClick={fetchEventTypes}
             className="p-2.5 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl shadow-sm transition-colors"
@@ -329,6 +340,14 @@ export const EventTypesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Smart Excel Import Modal */}
+      <SmartExcelImportModal
+        isOpen={showExcelModal}
+        onClose={() => setShowExcelModal(false)}
+        onSuccess={fetchEventTypes}
+        defaultTab="celebrations"
+      />
     </div>
   );
 };

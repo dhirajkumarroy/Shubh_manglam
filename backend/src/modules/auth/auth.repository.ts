@@ -207,6 +207,13 @@ export class AuthRepository {
     ]);
   }
 
+  async markEmailVerified(userId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true },
+    });
+  }
+
   // =========================================================================
   // Password Reset Tokens
   // =========================================================================
