@@ -5,7 +5,7 @@ import { UnauthorizedError, ForbiddenError, ConflictError } from '../src/common/
 
 async function runAuthTests() {
   console.log('===================================================');
-  console.log('🚀 Running Shubh Mangalam Phase 3 Auth & RBAC Tests');
+  console.log('🚀 Running Shubh Ausar Phase 3 Auth & RBAC Tests');
   console.log('===================================================');
 
   const authService = new AuthService();
@@ -136,8 +136,8 @@ async function runAuthTests() {
     // -------------------------------------------------------------
     console.log('\n[Group 3: Admin & Cross-Role Authorization]');
     const adminLogin = await authService.loginAdmin({
-      email: 'admin.demo@shubhmangalam.local',
-      password: 'password',
+      email: 'admin@gmail.com',
+      password: 'Password@123',
     });
     assert(
       adminLogin.user.role === UserRole.ADMIN && !!adminLogin.tokens?.accessToken,

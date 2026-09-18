@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import {
   useNotifications,
   useMarkAsRead,
@@ -17,8 +18,10 @@ import {
 } from '../../hooks/useNotifications';
 import { Notification } from '../../types/notification';
 import colors from '../../theme/colors';
+import { AppIcon } from '../../components/AppIcon';
 
 export const NotificationsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   // Fetch real notifications list from backend (limit 50)
   const {
     data: notificationsData,
@@ -54,6 +57,20 @@ export const NotificationsScreen: React.FC = () => {
           console.error('Failed to mark notification as read:', err);
         },
       });
+    }
+
+    // Deep-link according to notification category / entity
+    const data = (item as any).data || {};
+    if (data.quoteId) {
+      navigation.navigate('QuoteDetailsScreen', { quoteId: data.quoteId });
+    } else if (item.type.includes('QUOTE')) {
+      navigation.navigate('QuotesListScreen');
+    } else if (data.bookingId) {
+      navigation.navigate('BookingDetailsScreen', { bookingId: data.bookingId });
+    } else if (item.type.includes('BOOKING')) {
+      navigation.navigate('MyBookingsScreen');
+    } else if (data.inquiryId || item.type.includes('INQUIRY')) {
+      navigation.navigate('CustomerInquiriesScreen');
     }
   };
 
@@ -178,7 +195,7 @@ export const NotificationsScreen: React.FC = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🔔</Text>
+              <AppIcon name="notifications-off-outline" size={48} color="#D97706" />
               <Text style={styles.emptyText}>You're all caught up!</Text>
               <Text style={styles.emptySub}>No notifications found.</Text>
             </View>

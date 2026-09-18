@@ -157,7 +157,7 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
       setProfile(updated);
       Alert.alert(
         'Submitted!',
-        'Your profile has been submitted for review. The Shubh Mangalam admin team will verify your details.',
+        'Your profile has been submitted for review. The Shubh Ausar admin team will verify your details.',
         [{ text: 'OK', onPress: onFinish }]
       );
     } catch (err: any) {

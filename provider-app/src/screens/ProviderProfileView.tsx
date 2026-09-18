@@ -156,7 +156,7 @@ export const ProviderProfileView: React.FC<ProviderProfileViewProps> = ({
         )}
       </View>
 
-      <Text style={styles.appFootnote}>Shubh Mangalam Partner Console • Version 1.0.0</Text>
+      <Text style={styles.appFootnote}>Shubh Ausar • शुभ अवसर Partner Console • Version 1.0.0</Text>
     </ScrollView>
   );
 };

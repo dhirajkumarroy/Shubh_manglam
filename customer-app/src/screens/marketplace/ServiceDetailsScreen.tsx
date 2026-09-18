@@ -15,11 +15,14 @@ import colors from '../../theme/colors';
 import { useServiceDetails } from '../../hooks/useEventPlanning';
 import { openDialer, openWhatsApp } from '../../utils/contact';
 import { InquiryModal } from '../../components/InquiryModal';
+import RequestQuoteModal from '../quotes/RequestQuoteModal';
+import { AppIcon } from '../../components/AppIcon';
 
 export const ServiceDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const [inquiryModalVisible, setInquiryModalVisible] = useState<boolean>(false);
+  const [quoteModalVisible, setQuoteModalVisible] = useState<boolean>(false);
   const serviceId = route.params?.serviceId;
   const eventId = route.params?.eventId;
   const latitude = route.params?.latitude;
@@ -93,7 +96,7 @@ export const ServiceDetailsScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {service.name}
@@ -170,7 +173,8 @@ export const ServiceDetailsScreen: React.FC = () => {
                 <Text style={styles.vendorCardHeading}>OFFERED BY</Text>
                 {service.distanceKm !== null && service.distanceKm !== undefined && (
                   <View style={styles.distanceBadge}>
-                    <Text style={styles.distanceBadgeText}>📍 {service.distanceKm} km away</Text>
+                    <AppIcon name="location-outline" size={11} color="#D97706" />
+                    <Text style={[styles.distanceBadgeText, { marginLeft: 3 }]}>{service.distanceKm} km away</Text>
                   </View>
                 )}
               </View>
@@ -178,17 +182,23 @@ export const ServiceDetailsScreen: React.FC = () => {
               <View style={styles.vendorCardBody}>
                 <View style={styles.vendorInfo}>
                   <Text style={styles.vendorName}>{service.vendor.businessName}</Text>
-                  <Text style={styles.vendorLocation}>
-                    📍 {service.vendor.city}, {service.vendor.state}
-                  </Text>
-                  {service.vendor.phone && (
-                    <Text style={styles.vendorPhone}>
-                      📞 {service.vendor.phone}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                    <AppIcon name="location-outline" size={12} color="#D97706" />
+                    <Text style={[styles.vendorLocation, { marginLeft: 4 }]}>
+                      {service.vendor.city}, {service.vendor.state}
                     </Text>
+                  </View>
+                  {service.vendor.phone && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                      <AppIcon name="call-outline" size={12} color="#881337" />
+                      <Text style={[styles.vendorPhone, { marginLeft: 4 }]}>
+                        {service.vendor.phone}
+                      </Text>
+                    </View>
                   )}
                   <View style={styles.vendorRatingRow}>
-                    <Text style={styles.ratingStar}>★</Text>
-                    <Text style={styles.ratingNum}>
+                    <AppIcon name="star" size={12} color="#F59E0B" />
+                    <Text style={[styles.ratingNum, { marginLeft: 3 }]}>
                       {service.vendor.ratingAverage ? Number(service.vendor.ratingAverage).toFixed(1) : 'New'}
                     </Text>
                     <Text style={styles.ratingCount}>({service.vendor.ratingCount} reviews)</Text>
@@ -201,36 +211,10 @@ export const ServiceDetailsScreen: React.FC = () => {
                     navigation.navigate('VendorDetailsScreen', {
                       vendorId: service.vendor!.id,
                       eventId,
-                      latitude,
-                      longitude,
                     })
                   }
                 >
                   <Text style={styles.viewVendorBtnText}>View Profile →</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Vendor Quick Contact Action Buttons */}
-              <View style={styles.vendorContactRow}>
-                <TouchableOpacity
-                  style={styles.contactCallBtn}
-                  activeOpacity={0.8}
-                  onPress={() => openDialer(service.vendor?.phone || '')}
-                >
-                  <Text style={styles.contactCallBtnText}>📞 Call Provider</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.contactWhatsAppBtn}
-                  activeOpacity={0.8}
-                  onPress={() =>
-                    openWhatsApp(
-                      service.vendor?.phone || '',
-                      `Hello ${service.vendor?.businessName}, I found your service "${service.name}" on Shubh Mangalam and would like to check availability and pricing.`
-                    )
-                  }
-                >
-                  <Text style={styles.contactWhatsAppBtnText}>💬 WhatsApp</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -255,7 +239,7 @@ export const ServiceDetailsScreen: React.FC = () => {
             activeOpacity={0.8}
             onPress={() => openDialer(service.vendor?.phone || '')}
           >
-            <Text style={styles.bottomCallIcon}>📞</Text>
+            <AppIcon name="call-outline" size={16} color="#881337" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -264,20 +248,34 @@ export const ServiceDetailsScreen: React.FC = () => {
             onPress={() =>
               openWhatsApp(
                 service.vendor?.phone || '',
-                `Hello ${service.vendor?.businessName}, I found your service "${service.name}" on Shubh Mangalam and would like to check availability and pricing.`
+                `Hello ${service.vendor?.businessName}, I found your service "${service.name}" on Shubh Ausar and would like to check availability and pricing.`
               )
             }
           >
-            <Text style={styles.bottomWhatsAppText}>💬 WhatsApp</Text>
+            <AppIcon name="logo-whatsapp" size={16} color="#16A34A" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtn} onPress={handleAction}>
-            <Text style={styles.actionBtnText}>
-              {service.pricingType === 'CUSTOM_QUOTE' ? 'Custom Quote' : 'Inquire'}
-            </Text>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#881337', paddingHorizontal: 16 }]}
+            onPress={() => setQuoteModalVisible(true)}
+          >
+            <Text style={styles.actionBtnText}>Request Quote</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Formal Quote Modal */}
+      {service.vendor && (
+        <RequestQuoteModal
+          visible={quoteModalVisible}
+          onClose={() => setQuoteModalVisible(false)}
+          vendorId={service.vendor.id}
+          vendorName={service.vendor.businessName}
+          preselectedServiceId={service.id}
+          preselectedServiceName={service.name}
+          onSuccess={(qId) => navigation.navigate('QuoteDetailsScreen', { quoteId: qId })}
+        />
+      )}
 
       {/* Inquiry Modal Form */}
       {service.vendor && (
@@ -298,7 +296,7 @@ export const ServiceDetailsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   centerBox: {
     flex: 1,

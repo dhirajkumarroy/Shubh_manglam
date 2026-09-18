@@ -14,7 +14,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../theme/colors';
 
-const STORAGE_KEY = '@shubh_google_accounts_v1';
+const STORAGE_KEY = '@shubh_ausar_google_accounts_v1';
 
 export interface GoogleAccount {
   email: string;
@@ -138,7 +138,7 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Choose or enter your Google Account to securely access Shubh Mangalam
+            Choose or enter your Google Account to securely access Shubh Ausar
           </Text>
 
           {activeError && (
@@ -256,7 +256,7 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
 
           <View style={styles.footerNote}>
             <Text style={styles.footerNoteText}>
-              Your information is securely encrypted & verified with Shubh Mangalam.
+              Your information is securely encrypted & verified with Shubh Ausar.
             </Text>
           </View>
         </View>

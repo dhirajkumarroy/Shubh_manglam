@@ -4,7 +4,7 @@ import { UserQueryDto, AdminVendorQueryDto, AdminDashboardStats } from './admin.
 
 export class AdminRepository {
   /**
-   * Fetches full Shubh Mangalam dashboard statistics counts.
+   * Fetches full Shubh Ausar dashboard statistics counts.
    */
   async getDashboardStats(): Promise<AdminDashboardStats> {
     const [

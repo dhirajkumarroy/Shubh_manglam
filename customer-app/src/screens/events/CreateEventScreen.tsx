@@ -20,6 +20,7 @@ import {
   useCreateEvent,
   useCreateRequirement,
 } from '../../hooks/useEventPlanning';
+import { AppIcon } from '../../components/AppIcon';
 
 export const CreateEventScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -192,11 +193,42 @@ export const CreateEventScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>Plan New Celebration</Text>
           <Text style={styles.subTitle}>Set up your event & requirements</Text>
+        </View>
+      </View>
+
+      {/* Stepper Progress Bar */}
+      <View style={styles.stepperWrap}>
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, styles.stepCircleActive]}>
+            <Text style={styles.stepCircleText}>1</Text>
+          </View>
+          <Text style={[styles.stepLabel, styles.stepLabelActive]}>Occasion</Text>
+        </View>
+        <View style={styles.stepLine} />
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, styles.stepCircleActive]}>
+            <Text style={styles.stepCircleText}>2</Text>
+          </View>
+          <Text style={[styles.stepLabel, styles.stepLabelActive]}>Details</Text>
+        </View>
+        <View style={styles.stepLine} />
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, styles.stepCircleActive]}>
+            <Text style={styles.stepCircleText}>3</Text>
+          </View>
+          <Text style={[styles.stepLabel, styles.stepLabelActive]}>Venue</Text>
+        </View>
+        <View style={styles.stepLine} />
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, styles.stepCircleActive]}>
+            <Text style={styles.stepCircleText}>4</Text>
+          </View>
+          <Text style={[styles.stepLabel, styles.stepLabelActive]}>Services</Text>
         </View>
       </View>
 
@@ -214,7 +246,7 @@ export const CreateEventScreen: React.FC = () => {
                 ]}
                 onPress={() => setSelectedEventTypeId(et.id)}
               >
-                <Text style={styles.eventTypeIcon}>{et.icon || '🎉'}</Text>
+                <Text style={styles.eventTypeIcon}>{et.icon || '✨'}</Text>
                 <Text
                   style={[
                     styles.eventTypeText,
@@ -340,7 +372,10 @@ export const CreateEventScreen: React.FC = () => {
               {detectingGps ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.gpsButtonText}>📍 Auto-Detect GPS</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <AppIcon name="navigate-outline" size={13} color="#FFFFFF" />
+                  <Text style={[styles.gpsButtonText, { marginLeft: 4 }]}>Auto-Detect GPS</Text>
+                </View>
               )}
             </TouchableOpacity>
           </View>
@@ -356,9 +391,12 @@ export const CreateEventScreen: React.FC = () => {
                     style={styles.savedAddrChip}
                     onPress={() => handleSelectSavedAddress(addr)}
                   >
-                    <Text style={styles.savedAddrChipText}>
-                      🏠 {addr.label || 'Saved'}: {addr.city} ({addr.pincode})
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <AppIcon name="home-outline" size={12} color="#881337" />
+                      <Text style={[styles.savedAddrChipText, { marginLeft: 4 }]}>
+                        {addr.label || 'Saved'}: {addr.city} ({addr.pincode})
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -456,7 +494,53 @@ export const CreateEventScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
+  },
+  stepperWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3E8E2',
+  },
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepCircleActive: {
+    backgroundColor: '#881337',
+  },
+  stepCircleText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  stepLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  stepLabelActive: {
+    color: '#881337',
+    fontWeight: '700',
+  },
+  stepLine: {
+    width: 28,
+    height: 2,
+    backgroundColor: '#E65100',
+    marginHorizontal: 6,
+    marginBottom: 14,
   },
   header: {
     flexDirection: 'row',

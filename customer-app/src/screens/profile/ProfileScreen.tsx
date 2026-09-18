@@ -9,13 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { logoutUser, updateUser } from '../../store/slices/authSlice';
+import { logoutUser } from '../../store/slices/authSlice';
 import {
   useUserProfile,
   useUpdateProfile,
@@ -23,34 +24,29 @@ import {
 } from '../../hooks/useProfile';
 import Config from '../../config';
 import colors from '../../theme/colors';
+import AppIcon from '../../components/AppIcon';
 
 export const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<any>();
 
-  // Fetch Redux state user as baseline
   const reduxUser = useAppSelector((state) => state.auth.user);
-
-  // React Query Profile hook
   const {
     data: profileData,
     isLoading: isProfileLoading,
     isRefetching,
     refetch,
-    isError,
   } = useUserProfile();
 
   const updateProfileMutation = useUpdateProfile();
   const uploadAvatarMutation = useUploadAvatar();
 
-  // Active user data
   const user = profileData || reduxUser;
 
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
 
-  // Keep state inputs synchronized when hook queries complete
   useEffect(() => {
     if (user) {
       setName(user.name);
@@ -82,6 +78,28 @@ export const ProfileScreen: React.FC = () => {
     );
   };
 
+  const handleImageUpload = (localUri: string) => {
+    const filename = localUri.split('/').pop() || 'avatar.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+    const formData = new FormData();
+    formData.append('avatar', {
+      uri: localUri,
+      name: filename,
+      type,
+    } as any);
+
+    uploadAvatarMutation.mutate(formData, {
+      onSuccess: () => {
+        Alert.alert('Success', 'Profile photo updated successfully.');
+      },
+      onError: (err: any) => {
+        Alert.alert('Upload Failed', err.message || 'Could not upload avatar image.');
+      },
+    });
+  };
+
   const pickImageFromGallery = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
@@ -104,12 +122,11 @@ export const ProfileScreen: React.FC = () => {
   const pickImageFromCamera = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert('Permission Denied', 'Camera permissions are required to take a picture.');
+      Alert.alert('Permission Denied', 'Camera permissions are required to take a new photo.');
       return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -120,44 +137,16 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (uri: string) => {
-    const formData = new FormData();
-    const filename = uri.split('/').pop() || 'avatar.jpg';
-
-    // Infer image type extension
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-    formData.append('avatar', {
-      uri,
-      name: filename,
-      type,
-    } as any);
-
-    uploadAvatarMutation.mutate(formData, {
-      onSuccess: (updatedUser) => {
-        Alert.alert('Success', 'Profile image uploaded successfully.');
-      },
-      onError: (err: any) => {
-        Alert.alert('Upload Failed', err.message || 'Could not upload profile picture.');
-      },
-    });
-  };
-
   const handleSelectAvatar = () => {
-    Alert.alert(
-      'Update Profile Image',
-      'Choose a source for your avatar:',
-      [
-        { text: 'Camera', onPress: pickImageFromCamera },
-        { text: 'Gallery', onPress: pickImageFromGallery },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    Alert.alert('Change Profile Photo', 'Choose a source for your photo:', [
+      { text: 'Camera', onPress: pickImageFromCamera },
+      { text: 'Gallery', onPress: pickImageFromGallery },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleLogout = () => {
-    Alert.alert('Confirm Logout', 'Are you sure you want to log out of Shubh Mangalam?', [
+    Alert.alert('Confirm Logout', 'Are you sure you want to log out of Shubh Ausar?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
@@ -172,20 +161,18 @@ export const ProfileScreen: React.FC = () => {
   const getFullImageUrl = (imagePath?: string | null): string | null => {
     if (!imagePath) return null;
     if (imagePath.startsWith('http')) return imagePath;
-
     const baseUrl = Config.API_URL.split('/api/v1')[0];
     return `${baseUrl}/${imagePath.replace(/^\//, '')}`;
   };
 
   const avatarUri = getFullImageUrl(user?.avatar);
-
   const isSaving = updateProfileMutation.isPending;
   const isUploading = uploadAvatarMutation.isPending;
 
   if (isProfileLoading && !user) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Fetching profile records...</Text>
       </SafeAreaView>
     );
@@ -200,15 +187,15 @@ export const ProfileScreen: React.FC = () => {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor="#8b5cf6"
-            colors={['#8b5cf6']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>My Profile</Text>
-          <Text style={styles.subtitle}>Customize your account details and options</Text>
+          <Text style={styles.subtitle}>Manage your account, celebrations & preferences</Text>
         </View>
 
         {/* Avatar Section */}
@@ -235,19 +222,58 @@ export const ProfileScreen: React.FC = () => {
             disabled={isUploading}
           >
             <Text style={styles.uploadBtnText}>
-              {isUploading ? 'Uploading...' : 'Upload Photo'}
+              {isUploading ? 'Uploading...' : 'Change Photo'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Inputs */}
+        {/* Quick Navigation Hub */}
+        <View style={styles.hubCard}>
+          <Text style={styles.hubTitle}>CELEBRATION MANAGEMENT</Text>
+          <TouchableOpacity
+            style={styles.hubItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('EventsTab')}
+          >
+            <AppIcon type="ionicons" name="calendar-outline" size={20} color="#881337" />
+            <Text style={styles.hubItemText}>My Events</Text>
+            <AppIcon type="ionicons" name="chevron-forward" size={16} color="#A8A29E" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.hubItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('QuotesListScreen')}
+          >
+            <AppIcon type="ionicons" name="document-text-outline" size={20} color="#881337" />
+            <Text style={styles.hubItemText}>My Quotes & Offers</Text>
+            <AppIcon type="ionicons" name="chevron-forward" size={16} color="#A8A29E" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.hubItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('MyBookingsScreen')}
+          >
+            <AppIcon type="ionicons" name="checkmark-done-circle-outline" size={20} color="#881337" />
+            <Text style={styles.hubItemText}>My Confirmed Bookings</Text>
+            <AppIcon type="ionicons" name="chevron-forward" size={16} color="#A8A29E" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.hubItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('FavoritesTab')}
+          >
+            <AppIcon type="ionicons" name="heart-outline" size={20} color="#881337" />
+            <Text style={styles.hubItemText}>My Favorites</Text>
+            <AppIcon type="ionicons" name="chevron-forward" size={16} color="#A8A29E" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Personal Details Form */}
         <View style={styles.form}>
-          <Text style={styles.label}>Email Address (Immutable)</Text>
-          <TextInput
-            style={[styles.input, styles.disabledInput]}
-            value={email}
-            editable={false}
-          />
+          <Text style={styles.formTitle}>PERSONAL INFORMATION</Text>
 
           <Text style={styles.label}>Full Name</Text>
           <TextInput
@@ -255,7 +281,7 @@ export const ProfileScreen: React.FC = () => {
             value={name}
             onChangeText={setName}
             placeholder="Enter name"
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#A8A29E"
           />
 
           <Text style={styles.label}>Phone Number</Text>
@@ -264,14 +290,14 @@ export const ProfileScreen: React.FC = () => {
             value={phone}
             onChangeText={setPhone}
             placeholder="Enter phone number"
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#A8A29E"
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>Account Type</Text>
+          <Text style={styles.label}>Email Address (Registered)</Text>
           <TextInput
             style={[styles.input, styles.disabledInput]}
-            value={user?.role}
+            value={email}
             editable={false}
           />
 
@@ -284,7 +310,7 @@ export const ProfileScreen: React.FC = () => {
             {isSaving ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.saveBtnText}>Save Changes</Text>
+              <Text style={styles.saveBtnText}>Save Profile Changes</Text>
             )}
           </TouchableOpacity>
 
@@ -307,147 +333,186 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FAF8F5',
   },
   scrollContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 40,
   },
   header: {
-    paddingTop: 20,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#881337', // Brand Royal Maroon
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#78716C',
+    marginTop: 2,
   },
   avatarSection: {
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.card,
-    marginBottom: 12,
-  },
-  avatarLetter: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: colors.white,
-  },
-  uploadBtn: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  uploadBtnText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  form: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 24,
-  },
-  label: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: colors.card,
-    borderColor: colors.borderLight,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: colors.text,
     marginBottom: 20,
   },
-  disabledInput: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    color: colors.textMuted,
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+  avatarPlaceholder: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: '#881337',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#FED7AA',
   },
-  saveBtnDisabled: {
-    backgroundColor: colors.primaryDark,
+  avatarImage: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#FED7AA',
   },
-  saveBtnText: {
-    color: colors.white,
-    fontSize: 16,
+  avatarLetter: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  uploadBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7E0D8',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  uploadBtnText: {
+    color: '#881337',
+    fontSize: 11.5,
     fontWeight: '700',
   },
-  passwordBtn: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+  hubCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderColor: '#E7E0D8',
+    padding: 16,
+    marginBottom: 16,
+  },
+  hubTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#A8A29E',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  hubItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FAF8F5',
+    gap: 12,
+  },
+  hubItemText: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#1C1917',
+  },
+  form: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E7E0D8',
+    padding: 16,
+  },
+  formTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#A8A29E',
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
+  label: {
+    fontSize: 11.5,
+    color: '#78716C',
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: '#FAF8F5',
+    borderColor: '#E7E0D8',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 13.5,
+    color: '#1C1917',
+    marginBottom: 14,
+  },
+  disabledInput: {
+    backgroundColor: '#F5F5F4',
+    color: '#A8A29E',
+  },
+  saveBtn: {
+    backgroundColor: '#E65100', // Saffron Orange
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+  passwordBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7E0D8',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   passwordBtnText: {
-    color: colors.primary,
-    fontSize: 16,
+    color: '#881337',
+    fontSize: 13,
     fontWeight: '700',
   },
   logoutBtn: {
-    borderColor: colors.error,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   logoutBtnText: {
-    color: colors.error,
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '800',
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FAF8F5',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   loadingText: {
     marginTop: 12,
-    color: colors.textSecondary,
-    fontSize: 14,
+    color: '#78716C',
+    fontSize: 13,
     fontWeight: '600',
   },
 });

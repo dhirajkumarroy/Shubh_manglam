@@ -39,7 +39,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: '3',
     title: '✅ Partner Status Approved',
-    message: 'Your vendor onboarding has been verified and approved by the Shubh Mangalam admin team.',
+    message: 'Your vendor onboarding has been verified and approved by the Shubh Ausar admin team.',
     time: 'Yesterday',
     type: 'SUCCESS',
     isRead: true,

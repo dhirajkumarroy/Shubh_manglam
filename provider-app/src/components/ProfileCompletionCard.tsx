@@ -1,81 +1,79 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import colors from '../theme/colors';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import CircularProgress from './CircularProgress';
 import { ProfileCompleteness } from '../types';
 
 interface ProfileCompletionCardProps {
-  completeness: ProfileCompleteness;
-  status: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
-  onSubmitForReview: () => Promise<void>;
+  completeness?: ProfileCompleteness | null;
+  status?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  onNavigateToComplete?: () => void;
+  onSubmitForReview?: () => Promise<void> | void;
   isSubmitting?: boolean;
 }
 
 export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({
   completeness,
   status,
+  onNavigateToComplete,
   onSubmitForReview,
   isSubmitting = false,
 }) => {
-  const { profileCompleted, completionPercentage, missingFields } = completeness;
-  const canSubmit = (status === 'PENDING' || status === 'REJECTED') && profileCompleted;
+  const percentage = completeness?.completionPercentage ?? 50;
+  const isComplete = percentage >= 100;
+  const canSubmit = (status === 'PENDING' || status === 'REJECTED') && isComplete;
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Profile Readiness</Text>
-        <Text style={styles.percentText}>{completionPercentage}% Complete</Text>
+      {/* 1. Left: Circular Progress Ring */}
+      <View style={styles.progressWrap}>
+        <CircularProgress percentage={percentage} size={54} strokeWidth={4.5} />
       </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressBarBackground}>
-        <View style={[styles.progressBarFill, { width: `${completionPercentage}%` }]} />
+      {/* 2. Middle: Content Description */}
+      <View style={styles.textCol}>
+        <Text style={styles.titleText}>
+          {isComplete ? 'Profile Complete' : 'Complete Your Profile'}
+        </Text>
+        <Text style={styles.descText} numberOfLines={2}>
+          {isComplete
+            ? 'Your business profile and documentation are 100% verified.'
+            : 'Add remaining details and documents to get 100% verification and build trust.'}
+        </Text>
       </View>
 
-      {/* Missing Requirements List */}
-      {missingFields.length > 0 ? (
-        <View style={styles.missingContainer}>
-          <Text style={styles.missingTitle}>Required before review submission:</Text>
-          {missingFields.map((field) => (
-            <Text key={field} style={styles.missingItem}>
-              • {field}
-            </Text>
-          ))}
-        </View>
-      ) : (
-        <View style={styles.readyContainer}>
-          <Text style={styles.readyText}>
-            🎉 All required business details and documents are complete!
-          </Text>
-        </View>
-      )}
-
-      {/* Action Button */}
-      {status === 'PENDING' || status === 'REJECTED' ? (
+      {/* 3. Right: Action Button */}
+      {onSubmitForReview ? (
         <TouchableOpacity
-          style={[styles.submitButton, !canSubmit && styles.buttonDisabled]}
+          style={[styles.actionBtn, !canSubmit && styles.actionBtnDisabled]}
+          activeOpacity={0.8}
           onPress={onSubmitForReview}
           disabled={!canSubmit || isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color={colors.white} size="small" />
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.submitButtonText}>
-              {status === 'REJECTED' ? 'Resubmit for Admin Review' : 'Submit for Admin Review'}
+            <Text style={styles.actionBtnText}>
+              {status === 'REJECTED' ? 'Resubmit →' : 'Submit Review →'}
             </Text>
           )}
         </TouchableOpacity>
-      ) : status === 'UNDER_REVIEW' ? (
-        <View style={styles.inReviewBanner}>
-          <Text style={styles.inReviewText}>
-            ⏳ Your application is currently under administrative review.
+      ) : onNavigateToComplete ? (
+        <TouchableOpacity
+          style={[styles.actionBtn, isComplete && styles.actionBtnComplete]}
+          activeOpacity={0.8}
+          onPress={onNavigateToComplete}
+        >
+          <Text style={[styles.actionBtnText, isComplete && styles.actionBtnTextComplete]}>
+            {isComplete ? 'View Profile →' : 'Complete Now →'}
           </Text>
-        </View>
-      ) : status === 'APPROVED' ? (
-        <View style={styles.approvedBanner}>
-          <Text style={styles.approvedText}>
-            ✅ Verified & Approved. Your profile is active on the marketplace.
-          </Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
     </View>
   );
@@ -83,118 +81,71 @@ export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    padding: 16,
-    marginVertical: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  percentText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
-  },
-  missingContainer: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  missingTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 4,
-  },
-  missingItem: {
-    fontSize: 11,
-    color: '#B45309',
-    marginLeft: 4,
-    lineHeight: 16,
-  },
-  readyContainer: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  readyText: {
-    fontSize: 12,
-    color: '#065F46',
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: colors.secondary,
-    borderRadius: 10,
+    backgroundColor: '#FFFDF9',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#FED7AA',
+    paddingHorizontal: 14,
     paddingVertical: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EA580C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+      default: {},
+    }),
   },
-  buttonDisabled: {
+  progressWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textCol: {
+    flex: 1,
+  },
+  titleText: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 2,
+  },
+  descText: {
+    fontSize: 11,
+    color: '#78716C',
+    lineHeight: 15,
+  },
+  actionBtn: {
+    backgroundColor: '#E65100', // Saffron orange
+    borderRadius: 20,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnDisabled: {
     opacity: 0.5,
   },
-  submitButtonText: {
-    color: colors.white,
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
     fontWeight: '800',
-    fontSize: 13,
   },
-  inReviewBanner: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
+  actionBtnComplete: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#10B981',
   },
-  inReviewText: {
-    fontSize: 12,
-    color: '#1E40AF',
-    fontWeight: '600',
-  },
-  approvedBanner: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  approvedText: {
-    fontSize: 12,
-    color: '#166534',
-    fontWeight: '700',
+  actionBtnTextComplete: {
+    color: '#065F46',
   },
 });
 

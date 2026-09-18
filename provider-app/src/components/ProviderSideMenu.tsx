@@ -18,8 +18,8 @@ const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 340);
 interface ProviderSideMenuProps {
   visible: boolean;
   onClose: () => void;
-  activeTab: 'DASHBOARD' | 'SERVICES' | 'PACKAGES' | 'INQUIRIES' | 'PROFILE';
-  onSelectTab: (tab: 'DASHBOARD' | 'SERVICES' | 'PACKAGES' | 'INQUIRIES' | 'PROFILE') => void;
+  activeTab: 'DASHBOARD' | 'QUOTES' | 'BOOKINGS' | 'SERVICES' | 'PACKAGES' | 'INQUIRIES' | 'PROFILE';
+  onSelectTab: (tab: 'DASHBOARD' | 'QUOTES' | 'BOOKINGS' | 'SERVICES' | 'PACKAGES' | 'INQUIRIES' | 'PROFILE') => void;
   businessName?: string;
   phone?: string;
   city?: string;
@@ -132,6 +132,31 @@ export const ProviderSideMenu: React.FC<ProviderSideMenuProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={[styles.menuItem, activeTab === 'QUOTES' && styles.menuItemActive]}
+              activeOpacity={0.7}
+              onPress={() => handleItemPress(() => onSelectTab('QUOTES'))}
+            >
+              <Text style={styles.menuIcon}>📜</Text>
+              <Text style={[styles.menuText, activeTab === 'QUOTES' && styles.menuTextActive]}>
+                Quotes & Proposals
+              </Text>
+              <View style={[styles.countBadge, { backgroundColor: colors.accentGoldBg }]}>
+                <Text style={[styles.countBadgeText, { color: colors.accentGold }]}>New</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.menuItem, activeTab === 'BOOKINGS' && styles.menuItemActive]}
+              activeOpacity={0.7}
+              onPress={() => handleItemPress(() => onSelectTab('BOOKINGS'))}
+            >
+              <Text style={styles.menuIcon}>🤝</Text>
+              <Text style={[styles.menuText, activeTab === 'BOOKINGS' && styles.menuTextActive]}>
+                Confirmed Bookings
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={[styles.menuItem, activeTab === 'SERVICES' && styles.menuItemActive]}
               activeOpacity={0.7}
               onPress={() => handleItemPress(() => onSelectTab('SERVICES'))}
@@ -226,8 +251,8 @@ export const ProviderSideMenu: React.FC<ProviderSideMenuProps> = ({
             </TouchableOpacity>
 
             <View style={styles.footerNote}>
-              <Text style={styles.footerAppVersion}>Shubh Mangalam Partner App v1.0.0</Text>
-              <Text style={styles.footerAppName}>Har Function, Ek App • 100% Verified</Text>
+              <Text style={styles.footerAppVersion}>Shubh Ausar • शुभ अवसर Partner v1.0.0</Text>
+              <Text style={styles.footerAppName}>Celebrate Every Occasion • 100% Verified</Text>
             </View>
           </ScrollView>
         </SafeAreaView>

@@ -1,8 +1,8 @@
-# Shubh Mangalam - Backend API Service
+# Shubh Ausar (शुभ अवसर) - Backend API Service
 
-> **Har Function, Ek App**
+> **"शुभ अवसर — Celebrate Every Occasion"**
 
-Backend API service for the **Shubh Mangalam** marketplace application (currently undergoing architectural transformation from the legacy GoVehicle codebase). Built with Node.js, Express, TypeScript, Prisma, and PostgreSQL, featuring background task queues powered by Redis and BullMQ.
+Backend API service for the **Shubh Ausar** marketplace application. Built with Node.js, Express, TypeScript, Prisma, and PostgreSQL, featuring background task queues powered by Redis and BullMQ.
 
 ---
 
@@ -57,7 +57,7 @@ SMTP_HOST=localhost
 SMTP_PORT=25
 SMTP_USER=your-smtp-username
 SMTP_PASS=your-smtp-password
-SMTP_FROM=Shubh Mangalam <no-reply@shubhmangalam.com>
+SMTP_FROM=Shubh Ausar <no-reply@shubhausar.com>
 
 # Cloudinary Setup (Optional - falls back to filesystem if not using)
 STORAGE_PROVIDER=local

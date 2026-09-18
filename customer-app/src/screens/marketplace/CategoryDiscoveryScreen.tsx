@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import { useMarketplaceCategories } from '../../hooks/useEventPlanning';
+import { AppIcon } from '../../components/AppIcon';
 
 export const CategoryDiscoveryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -48,7 +49,7 @@ export const CategoryDiscoveryScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>Celebration Categories</Text>
@@ -59,9 +60,9 @@ export const CategoryDiscoveryScreen: React.FC = () => {
       {/* Search */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <AppIcon name="search-outline" size={18} color="#9CA3AF" />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { marginLeft: 8 }]}
             placeholder="Search catering, decoration, DJ, makeup..."
             placeholderTextColor="#9CA3AF"
             value={search}
@@ -69,7 +70,7 @@ export const CategoryDiscoveryScreen: React.FC = () => {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={styles.clearIcon}>✕</Text>
+              <AppIcon name="close-circle" size={16} color="#9CA3AF" />
             </TouchableOpacity>
           )}
         </View>
@@ -82,7 +83,7 @@ export const CategoryDiscoveryScreen: React.FC = () => {
         </View>
       ) : categories.length === 0 ? (
         <View style={styles.centerBox}>
-          <Text style={styles.emptyIcon}>🎪</Text>
+          <AppIcon name="layers-outline" size={48} color="#D97706" />
           <Text style={styles.emptyTitle}>No Categories Found</Text>
           <Text style={styles.emptySub}>Try searching for another service category.</Text>
         </View>
@@ -97,7 +98,7 @@ export const CategoryDiscoveryScreen: React.FC = () => {
                   onPress={() => handleSelectCategory(cat)}
                 >
                   <View style={styles.iconBox}>
-                    <Text style={styles.iconText}>{cat.icon || '🎪'}</Text>
+                    <Text style={styles.iconText}>{cat.icon || '🌸'}</Text>
                   </View>
                   <View style={styles.cardBody}>
                     <Text style={styles.cardTitle}>{cat.name}</Text>
@@ -107,16 +108,22 @@ export const CategoryDiscoveryScreen: React.FC = () => {
                       </Text>
                     )}
                     <View style={styles.metaRow}>
-                      <Text style={styles.metaText}>
-                        🏢 {cat.vendorCount} Vendor{cat.vendorCount !== 1 ? 's' : ''}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <AppIcon name="business-outline" size={11} color="#6B7280" />
+                        <Text style={[styles.metaText, { marginLeft: 3 }]}>
+                          {cat.vendorCount} Vendor{cat.vendorCount !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
                       <Text style={styles.metaTextDot}>•</Text>
-                      <Text style={styles.metaText}>
-                        📦 {cat.serviceCount} Service{cat.serviceCount !== 1 ? 's' : ''}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <AppIcon name="cube-outline" size={11} color="#6B7280" />
+                        <Text style={[styles.metaText, { marginLeft: 3 }]}>
+                          {cat.serviceCount} Service{cat.serviceCount !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  <Text style={styles.cardArrow}>›</Text>
+                  <AppIcon name="chevron-forward" size={18} color="#D97706" />
                 </TouchableOpacity>
 
                 {/* Subcategories chips if present */}
@@ -156,7 +163,7 @@ export const CategoryDiscoveryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   header: {
     flexDirection: 'row',

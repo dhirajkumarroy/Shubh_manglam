@@ -38,20 +38,34 @@ export type HomeStackParamList = {
     eventId?: string;
   };
   CustomerInquiriesScreen: undefined;
+  QuotesListScreen: undefined;
+  QuoteDetailsScreen: { quoteId: string };
+  MyBookingsScreen: undefined;
+  BookingDetailsScreen: { bookingId: string };
 };
 
 export type ProfileStackParamList = {
   ProfileScreen: undefined;
   ChangePassword: undefined;
   CustomerInquiriesScreen: undefined;
+  QuotesListScreen: undefined;
+  QuoteDetailsScreen: { quoteId: string };
+  MyBookingsScreen: undefined;
+  BookingDetailsScreen: { bookingId: string };
 };
 
 export type AppTabParamList = {
   HomeTab: undefined;
-  InquiriesTab: undefined;
+  ExploreTab: undefined;
   EventsTab: undefined;
-  NotificationTab: undefined;
+  MessagesTab: undefined;
+  FavoritesTab: undefined;
   ProfileTab: undefined;
+  // Legacy aliases
+  QuotesTab?: undefined;
+  BookingsTab?: undefined;
+  InquiriesTab?: undefined;
+  NotificationTab?: undefined;
 };
 
 export type RootStackParamList = {

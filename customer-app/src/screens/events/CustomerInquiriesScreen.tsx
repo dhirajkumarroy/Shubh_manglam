@@ -14,6 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import { bookingService, CustomerInquiryItem } from '../../api/booking.service';
 import { openDialer, openWhatsApp } from '../../utils/contact';
+import { AppIcon } from '../../components/AppIcon';
+import { StatusBadge } from '../../components/StatusBadge';
 
 export const CustomerInquiriesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -70,11 +72,11 @@ export const CustomerInquiriesScreen: React.FC = () => {
       {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Celebration Inquiries</Text>
+        <Text style={styles.headerTitle}>My Messages & Inquiries</Text>
         <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
-          <Text style={styles.refreshBtnText}>🔄</Text>
+          <AppIcon name="refresh" size={18} color="#881337" />
         </TouchableOpacity>
       </View>
 
@@ -85,9 +87,12 @@ export const CustomerInquiriesScreen: React.FC = () => {
       >
         {/* Banner */}
         <View style={styles.banner}>
-          <Text style={styles.bannerTitle}>🎪 Direct Partner Requests</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AppIcon name="chatbubbles-outline" size={20} color="#881337" />
+            <Text style={[styles.bannerTitle, { marginLeft: 8 }]}>Direct Partner Requests</Text>
+          </View>
           <Text style={styles.bannerSub}>
-            Track real-time responses from local service providers for your upcoming functions.
+            Track real-time responses from local service providers for your upcoming celebrations.
           </Text>
         </View>
 
@@ -98,7 +103,7 @@ export const CustomerInquiriesScreen: React.FC = () => {
           </View>
         ) : inquiries.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <AppIcon name="mail-outline" size={48} color="#D97706" />
             <Text style={styles.emptyTitle}>No Inquiries Yet</Text>
             <Text style={styles.emptySub}>
               Browse Halwai, Decorators, Beauticians, or DJs and tap "Send Inquiry" to connect with vendors.
@@ -141,51 +146,37 @@ export const CustomerInquiriesScreen: React.FC = () => {
                 <View style={styles.cardHeader}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.vendorName}>{vendorName}</Text>
-                    <Text style={styles.locationText}>📍 {location}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                      <AppIcon name="location-outline" size={12} color="#D97706" />
+                      <Text style={[styles.locationText, { marginLeft: 4 }]}>{location}</Text>
+                    </View>
                   </View>
-                  <View
-                    style={[
-                      styles.statusPill,
-                      isAccepted && styles.statusPillAccepted,
-                      isRejected && styles.statusPillRejected,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusPillText,
-                        isAccepted && styles.statusPillTextAccepted,
-                        isRejected && styles.statusPillTextRejected,
-                      ]}
-                    >
-                      {isPending && '⏳ PENDING RESPONSE'}
-                      {isAccepted && '✅ ACCEPTED'}
-                      {isRejected && '❌ DECLINED'}
-                      {isCancelled && '⚪ CANCELLED'}
-                    </Text>
-                  </View>
+                  <StatusBadge status={inquiry.status} />
                 </View>
 
                 {/* Occasion & Timing */}
                 <View style={styles.occasionRow}>
                   <View style={styles.occasionBadge}>
-                    <Text style={styles.occasionBadgeText}>🎉 {occasion}</Text>
+                    <AppIcon name="sparkles" size={12} color="#881337" />
+                    <Text style={[styles.occasionBadgeText, { marginLeft: 4 }]}>{occasion}</Text>
                   </View>
                   <View style={styles.dateBadge}>
-                    <Text style={styles.dateBadgeText}>📅 {eventDate}</Text>
+                    <AppIcon name="calendar-outline" size={12} color="#D97706" />
+                    <Text style={[styles.dateBadgeText, { marginLeft: 4 }]}>{eventDate}</Text>
                   </View>
                   <View style={styles.guestBadge}>
-                    <Text style={styles.guestBadgeText}>👥 {guestCount} Guests</Text>
+                    <AppIcon name="people-outline" size={12} color="#6B7280" />
+                    <Text style={[styles.guestBadgeText, { marginLeft: 4 }]}>{guestCount} Guests</Text>
                   </View>
                 </View>
 
-                {/* Service requested */}
+                {/* Requested Service */}
                 <View style={styles.serviceBox}>
                   <Text style={styles.serviceLabel}>SERVICE REQUESTED:</Text>
                   <Text style={styles.serviceName}>{serviceName}</Text>
-                  <Text style={styles.refNum}>Ref: {inquiry.bookingNumber}</Text>
                 </View>
 
-                {/* Notes if present */}
+                {/* Optional Message / Notes */}
                 {inquiry.inquiryDetails?.notes ? (
                   <View style={styles.notesBox}>
                     <Text style={styles.notesText}>"{inquiry.inquiryDetails.notes}"</Text>
@@ -210,24 +201,26 @@ export const CustomerInquiriesScreen: React.FC = () => {
                 {/* Action Buttons */}
                 <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={styles.callBtn}
+                    style={[styles.callBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
                     activeOpacity={0.8}
                     onPress={() => openDialer(phone)}
                   >
-                    <Text style={styles.callBtnText}>📞 Call Provider</Text>
+                    <AppIcon name="call" size={13} color="#881337" />
+                    <Text style={[styles.callBtnText, { marginLeft: 6 }]}>Call Provider</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.whatsAppBtn}
+                    style={[styles.whatsAppBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
                     activeOpacity={0.8}
                     onPress={() =>
                       openWhatsApp(
                         phone,
-                        `Hello ${vendorName}, following up on my inquiry for ${occasion} on ${eventDate} via Shubh Mangalam.`
+                        `Hello ${vendorName}, following up on my inquiry for ${occasion} on ${eventDate} via Shubh Ausar.`
                       )
                     }
                   >
-                    <Text style={styles.whatsAppBtnText}>💬 WhatsApp</Text>
+                    <AppIcon name="logo-whatsapp" size={13} color="#16A34A" />
+                    <Text style={[styles.whatsAppBtnText, { marginLeft: 6 }]}>WhatsApp</Text>
                   </TouchableOpacity>
 
                   {isPending && (
@@ -252,7 +245,7 @@ export const CustomerInquiriesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   header: {
     flexDirection: 'row',

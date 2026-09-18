@@ -1,7 +1,7 @@
 {
-  "name": "shubh-mangalam-backend",
+  "name": "shubh-ausar-backend",
   "version": "1.0.0",
-  "description": "Shubh Mangalam Marketplace Backend",
+  "description": "Shubh Ausar Marketplace Backend",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
@@ -16,7 +16,8 @@
     "test:auth": "ts-node tests/auth.test.ts",
     "test:vendor": "ts-node tests/vendor.test.ts",
     "test:catalog": "ts-node tests/catalog.test.ts",
-    "test:marketplace": "ts-node tests/marketplace.test.ts"
+    "test:marketplace": "ts-node tests/marketplace.test.ts",
+    "test:quotes": "ts-node tests/quote_booking_flow.test.ts"
   },
 
   "keywords": [

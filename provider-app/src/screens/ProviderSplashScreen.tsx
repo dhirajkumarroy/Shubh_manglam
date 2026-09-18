@@ -20,9 +20,9 @@ export const ProviderSplashScreen: React.FC = () => {
       <View style={styles.logoContainer}>
         <Text style={styles.badge}>PARTNER & PROVIDER APP</Text>
         <Text style={styles.logoText}>
-          Shubh <Text style={styles.logoAccent}>Mangalam</Text>
+          Shubh <Text style={styles.logoAccent}>Ausar</Text>
         </Text>
-        <Text style={styles.subtitle}>Grow your celebration & event business</Text>
+        <Text style={styles.subtitle}>शुभ अवसर • Grow your celebration business</Text>
       </View>
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

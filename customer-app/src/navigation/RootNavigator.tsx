@@ -16,17 +16,19 @@ import {
 import { navigate } from './navigationRef';
 
 // Top Bar, Side Menu & Bottom Bar Components
-import CustomerTopBar from '../components/CustomerTopBar';
-import CustomerSideMenu from '../components/CustomerSideMenu';
-import CustomerBottomBar from '../components/CustomerBottomBar';
+import UserTopBar from '../components/UserTopBar';
+import UserSideMenu from '../components/UserSideMenu';
+import UserBottomBar from '../components/UserBottomBar';
 
 // Auth Screens
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 
-// Home Screen
+// Home & Explore Screens
 import HomeScreen from '../screens/home/HomeScreen';
+import ExploreScreen from '../screens/marketplace/ExploreScreen';
+import FavoritesScreen from '../screens/marketplace/FavoritesScreen';
 
 // Event Planning Screens
 import EventTypesScreen from '../screens/events/EventTypesScreen';
@@ -50,6 +52,12 @@ import NotificationsScreen from '../screens/notification/NotificationsScreen';
 // Inquiries Screen
 import CustomerInquiriesScreen from '../screens/events/CustomerInquiriesScreen';
 
+// Quotes & Bookings Screens
+import QuotesListScreen from '../screens/quotes/QuotesListScreen';
+import QuoteDetailsScreen from '../screens/quotes/QuoteDetailsScreen';
+import MyBookingsScreen from '../screens/bookings/MyBookingsScreen';
+import BookingDetailsScreen from '../screens/bookings/BookingDetailsScreen';
+
 // Profile Screen
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
@@ -59,7 +67,7 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
-// 1. Auth Stack Navigator (Customer Only)
+// 1. Auth Stack Navigator
 const AuthStackNavigator = () => {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -85,6 +93,10 @@ const HomeStackNavigator = () => {
       <HomeStack.Screen name="ServiceDetailsScreen" component={ServiceDetailsScreen} />
       <HomeStack.Screen name="PackageDetailsScreen" component={PackageDetailsScreen} />
       <HomeStack.Screen name="CustomerInquiriesScreen" component={CustomerInquiriesScreen} />
+      <HomeStack.Screen name="QuotesListScreen" component={QuotesListScreen} />
+      <HomeStack.Screen name="QuoteDetailsScreen" component={QuoteDetailsScreen} />
+      <HomeStack.Screen name="MyBookingsScreen" component={MyBookingsScreen} />
+      <HomeStack.Screen name="BookingDetailsScreen" component={BookingDetailsScreen} />
     </HomeStack.Navigator>
   );
 };
@@ -102,7 +114,7 @@ const EventsStackNavigator = () => {
 };
 
 // 4. Profile Stack Navigator
-const ProfileStackNavigator = () => {
+const ProfileStackNav = () => {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
@@ -112,11 +124,11 @@ const ProfileStackNavigator = () => {
   );
 };
 
-// 5. Main App Bottom Tab Navigator
+// 5. Main 6-Tab Navigator (Home, Explore, My Events, Messages, Favorites, Profile)
 const AppTabNavigator = () => {
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomerBottomBar {...props} />}
+      tabBar={(props) => <UserBottomBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen
@@ -125,31 +137,36 @@ const AppTabNavigator = () => {
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
-        name="InquiriesTab"
-        component={CustomerInquiriesScreen}
-        options={{ tabBarLabel: 'Requests' }}
+        name="ExploreTab"
+        component={ExploreScreen}
+        options={{ tabBarLabel: 'Explore' }}
       />
       <Tab.Screen
         name="EventsTab"
         component={EventsStackNavigator}
-        options={{ tabBarLabel: 'Events' }}
+        options={{ tabBarLabel: 'My Events' }}
       />
       <Tab.Screen
-        name="NotificationTab"
-        component={NotificationsScreen}
-        options={{ tabBarLabel: 'Alerts' }}
+        name="MessagesTab"
+        component={CustomerInquiriesScreen}
+        options={{ tabBarLabel: 'Messages' }}
+      />
+      <Tab.Screen
+        name="FavoritesTab"
+        component={FavoritesScreen}
+        options={{ tabBarLabel: 'Favorites' }}
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileStackNavigator}
+        component={ProfileStackNav}
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
   );
 };
 
-// 6. Customer Main Shell with Top Toolbar & Side Menu Drawer
-const CustomerMainShell = () => {
+// 6. User Main Shell with Top Toolbar & Side Menu Drawer
+const UserMainShell = () => {
   const [sideMenuVisible, setSideMenuVisible] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
@@ -159,8 +176,8 @@ const CustomerMainShell = () => {
   return (
     <View style={styles.shellContainer}>
       {/* Top Tool Bar */}
-      <CustomerTopBar
-        userName={user?.name || 'Dhiraj Customer'}
+      <UserTopBar
+        userName={user?.name || 'Priya Sharma'}
         unreadNotificationsCount={unreadCount}
         onOpenMenu={() => setSideMenuVisible(true)}
         onOpenNotifications={() => navigate('NotificationTab')}
@@ -173,14 +190,17 @@ const CustomerMainShell = () => {
       </View>
 
       {/* Slide-out Side Menu Drawer */}
-      <CustomerSideMenu
+      <UserSideMenu
         visible={sideMenuVisible}
         onClose={() => setSideMenuVisible(false)}
-        customerName={user?.name || 'Dhiraj Customer'}
-        phone={user?.phone || '+919811111111'}
-        email={user?.email || 'customer@gmail.com'}
+        userName={user?.name || 'Priya Sharma'}
+        phone={user?.phone || '+91 98765 43210'}
+        email={user?.email || 'user@shubhausar.com'}
         onNavigateHome={() => navigate('HomeTab')}
-        onNavigateInquiries={() => navigate('InquiriesTab')}
+        onNavigateExplore={() => navigate('ExploreTab')}
+        onNavigateQuotes={() => navigate('HomeTab', { screen: 'QuotesListScreen' })}
+        onNavigateBookings={() => navigate('HomeTab', { screen: 'MyBookingsScreen' })}
+        onNavigateInquiries={() => navigate('MessagesTab')}
         onNavigateEvents={() => navigate('EventsTab')}
         onNavigateLocations={() => navigate('HomeTab', { screen: 'LocationSelectionScreen' })}
         onNavigateNotifications={() => navigate('NotificationTab')}
@@ -202,7 +222,7 @@ export const RootNavigator: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }}>
       <OfflineBanner />
-      {isAuthenticated ? <CustomerMainShell /> : <AuthStackNavigator />}
+      {isAuthenticated ? <UserMainShell /> : <AuthStackNavigator />}
     </View>
   );
 };

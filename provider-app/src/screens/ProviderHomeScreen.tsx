@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,16 +7,27 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
+  RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
-import VendorStatusBanner from '../components/VendorStatusBanner';
+import AppIcon from '../components/AppIcon';
+import PartnerGreetingCard from '../components/PartnerGreetingCard';
+import VerificationCard from '../components/VerificationCard';
+import ProfileCompletionCard from '../components/ProfileCompletionCard';
+import QuickActionsSection from '../components/QuickActionsSection';
+import BusinessOverviewCard, { TimePeriod } from '../components/BusinessOverviewCard';
+import RecentLeadsSection, { LeadItemData } from '../components/RecentLeadsSection';
 import { ProviderApiService } from '../services/api';
 import { FullVendorProfile } from '../types';
 
 interface ProviderHomeScreenProps {
   onNavigateToOnboarding?: () => void;
   onNavigateToCatalog?: () => void;
+  onNavigateToPackages?: () => void;
+  onNavigateToLeads?: () => void;
+  onNavigateToBookings?: () => void;
   onLogout?: () => void;
   vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   hideTopHeader?: boolean;
@@ -26,45 +37,186 @@ interface ProviderHomeScreenProps {
 export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
   onNavigateToOnboarding,
   onNavigateToCatalog,
+  onNavigateToPackages,
+  onNavigateToLeads,
+  onNavigateToBookings,
   onLogout,
   vendorStatus: initialStatus,
-  hideTopHeader = false,
+  hideTopHeader = true,
   profile: initialProfile,
 }) => {
   const [profile, setProfile] = useState<FullVendorProfile | null>(initialProfile || null);
   const [loading, setLoading] = useState<boolean>(!initialProfile);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = async () => {
+  // Business Performance Metrics
+  const [leadsCount, setLeadsCount] = useState<number>(0);
+  const [bookingsCount, setBookingsCount] = useState<number>(0);
+  const [servicesCount, setServicesCount] = useState<number>(0);
+  const [recentLeads, setRecentLeads] = useState<LeadItemData[]>([]);
+
+  const formatTimeAgo = (dateStr?: string) => {
+    if (!dateStr) return 'Recently';
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays} days ago`;
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
     try {
-      if (!initialProfile) setLoading(true);
-      const data = await ProviderApiService.getVendorProfile();
-      setProfile(data);
+      return new Date(dateStr).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
     } catch {
-      // Fallback
-    } finally {
-      setLoading(false);
+      return '';
     }
   };
 
+  const loadDashboardData = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (!profile) {
+        setLoading(true);
+      }
+      setError(null);
+
+      // Fetch Profile, Inquiries, Quotes, Bookings, Services in parallel
+      const [vendorProfile, inquiriesRes, quotesRes, bookingsRes, servicesRes] = await Promise.all([
+        ProviderApiService.getVendorProfile().catch(() => null),
+        ProviderApiService.getVendorInquiries().catch(() => []),
+        ProviderApiService.getVendorQuotes().catch(() => ({ quotes: [], total: 0 })),
+        ProviderApiService.getVendorBookings().catch(() => ({ bookings: [], total: 0 })),
+        ProviderApiService.getVendorServices().catch(() => ({ services: [], pagination: {} })),
+      ]);
+
+      if (vendorProfile) {
+        setProfile(vendorProfile);
+      }
+
+      const totalInquiries = Array.isArray(inquiriesRes) ? inquiriesRes : [];
+      const totalQuotes = quotesRes.quotes || [];
+      const totalBookings = bookingsRes.bookings || [];
+      const totalServices = servicesRes.services || [];
+
+      // Compute total leads (inquiries + quote requests)
+      const computedLeadsCount = totalInquiries.length + totalQuotes.length;
+      setLeadsCount(computedLeadsCount);
+      setBookingsCount(bookingsRes.total || totalBookings.length);
+      setServicesCount(totalServices.length);
+
+      // Map Recent Leads from inquiries and quotes
+      const leadsList: LeadItemData[] = [];
+
+      // Add Quotes
+      totalQuotes.forEach((q: any) => {
+        const item = q.items?.[0];
+        leadsList.push({
+          id: q.id,
+          type: 'QUOTE',
+          serviceTitle: item?.name || q.event?.title || 'Celebration Quote Request',
+          customerName: q.customer?.name || 'Celebration Host',
+          eventType: q.event?.eventType?.name || 'Wedding',
+          eventDate: formatDate(q.event?.eventDate),
+          location: q.event?.city || vendorProfile?.city || 'Kharar',
+          requirementSnippet: q.customerNotes || q.notes || 'Full celebration service requirement.',
+          status: q.status || 'REQUESTED',
+          timeAgo: formatTimeAgo(q.createdAt),
+          imageUrl: item?.service?.primaryImage || item?.service?.images?.[0]?.url || null,
+        });
+      });
+
+      // Add Inquiries
+      totalInquiries.forEach((inq: any) => {
+        leadsList.push({
+          id: inq.id,
+          type: 'INQUIRY',
+          serviceTitle: inq.eventRequirement?.category?.name || inq.event?.title || 'Event Inquiry',
+          customerName: inq.customer?.name || 'Client',
+          eventType: inq.event?.eventType?.name || 'Special Occasion',
+          eventDate: formatDate(inq.event?.eventDate),
+          location: inq.event?.city || vendorProfile?.city || 'Punjab',
+          requirementSnippet: inq.notes || inq.eventRequirement?.notes || 'Looking for available date & packages.',
+          status: inq.status || 'NEW',
+          timeAgo: formatTimeAgo(inq.createdAt),
+          imageUrl: inq.eventRequirement?.category?.image || null,
+        });
+      });
+
+      setRecentLeads(leadsList);
+    } catch (err: any) {
+      setError(err?.message || 'Unable to refresh dashboard data.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [profile]);
+
   useEffect(() => {
-    fetchProfile();
+    loadDashboardData();
   }, []);
 
   const activeStatus = profile?.status || initialStatus || 'PENDING';
+  const ownerName = profile?.user?.name;
+  const businessName = profile?.businessName;
+  const city = profile?.city;
+  const state = profile?.state;
 
   return (
     <SafeAreaView style={[styles.safeArea, hideTopHeader && { backgroundColor: 'transparent' }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header (conditionally rendered) */}
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Main Scrollable Content */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadDashboardData(true)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {/* Error Notification with Retry */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={() => loadDashboardData(true)}
+            >
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Loading Indicator for initial cold load */}
+        {loading && !refreshing && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Syncing your business command center...</Text>
+          </View>
+        )}
+
+        {/* A. Top App Header (when not embedded in MainScreen tab shell) */}
         {!hideTopHeader && (
           <View style={styles.header}>
             <View style={styles.headerInfo}>
-              <Text style={styles.greeting}>
-                {profile?.businessName || 'Shubh Mangalam Partner'}
+              <Text style={styles.greetingTitle}>
+                {businessName || 'Shubh Ausar Partner'}
               </Text>
-              <Text style={styles.subGreeting}>
-                {profile?.city ? `📍 ${profile.city}, ${profile.state || 'India'}` : 'Service Provider Console'}
+              <Text style={styles.greetingSub}>
+                {city ? `📍 ${city}, ${state || 'India'}` : 'Business Management Portal'}
               </Text>
             </View>
             {onLogout && (
@@ -75,142 +227,56 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
           </View>
         )}
 
-        {/* Dynamic Approval Lifecycle Banner */}
-        <VendorStatusBanner status={activeStatus} />
+        {/* B. Personalized Greeting Card */}
+        <PartnerGreetingCard
+          ownerName={ownerName}
+          businessName={businessName}
+          city={city}
+          state={state}
+        />
 
-        {/* Readiness / Incomplete Profile Notice */}
-        {profile?.completeness && !profile.completeness.profileCompleted && (
-          <View style={styles.actionCard}>
-            <View style={styles.actionCardHeader}>
-              <Text style={styles.actionCardTitle}>Profile Action Required</Text>
-              <Text style={styles.actionCardScore}>
-                {profile.completeness.completionPercentage}%
-              </Text>
-            </View>
-            <Text style={styles.actionCardSub}>
-              Complete missing documents and details to get verified and start receiving celebration leads.
-            </Text>
-            {onNavigateToOnboarding && (
-              <TouchableOpacity
-                style={styles.actionCardBtn}
-                onPress={onNavigateToOnboarding}
-              >
-                <Text style={styles.actionCardBtnText}>Complete Onboarding →</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        {/* C. Verification Status Card */}
+        <VerificationCard
+          status={activeStatus}
+          isVerified={profile?.isVerified}
+          onPressDetails={onNavigateToOnboarding}
+        />
 
-        {/* Quick Actions Row */}
-        <View style={styles.actionsRow}>
-          {activeStatus === 'APPROVED' && onNavigateToCatalog && (
-            <TouchableOpacity
-              style={styles.catalogBtn}
-              onPress={onNavigateToCatalog}
-            >
-              <Text style={styles.catalogBtnText}>🎪 Manage Services & Packages →</Text>
-            </TouchableOpacity>
-          )}
-          {onNavigateToOnboarding && (
-            <TouchableOpacity
-              style={styles.manageBtn}
-              onPress={onNavigateToOnboarding}
-            >
-              <Text style={styles.manageBtnText}>⚙ Edit Business Profile & Docs</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* D. Profile Completion Card */}
+        <ProfileCompletionCard
+          completeness={profile?.completeness}
+          onNavigateToComplete={onNavigateToOnboarding}
+        />
 
-        {/* Business Overview Card */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroHeader}>
-            <Text style={styles.heroTitle}>Partner Overview</Text>
-            <View
-              style={[
-                styles.verifiedBadge,
-                profile?.isVerified ? styles.badgeVerified : styles.badgeUnverified,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.verifiedBadgeText,
-                  profile?.isVerified ? styles.badgeTextVerified : styles.badgeTextUnverified,
-                ]}
-              >
-                {profile?.isVerified ? '✓ Verified Partner' : 'Verification Pending'}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.heroSubtitle}>
-            {profile?.description ||
-              'Connect with customers in your district planning weddings, receptions, birthdays, pujas, and corporate events.'}
-          </Text>
-        </View>
+        {/* E. Quick Actions Carousel */}
+        <QuickActionsSection
+          onManageServices={onNavigateToCatalog || (() => {})}
+          onManagePackages={onNavigateToPackages || onNavigateToCatalog || (() => {})}
+          onManageProfile={onNavigateToOnboarding || (() => {})}
+          onManageCalendar={onNavigateToBookings || (() => {})}
+          onSeeAll={onNavigateToCatalog}
+        />
 
-        {/* Selected Services / Categories */}
-        <Text style={styles.sectionTitle}>Your Selected Celebration Categories</Text>
-        {loading ? (
-          <View style={styles.emptyContainer}>
-            <ActivityIndicator color={colors.primary} size="small" />
-            <Text style={styles.emptyText}>Loading vendor categories...</Text>
-          </View>
-        ) : !profile?.categories || profile.categories.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🎪</Text>
-            <Text style={styles.emptyTitle}>No Categories Selected Yet</Text>
-            <Text style={styles.emptyText}>
-              Select the celebration services you offer (Catering, Tent, Decoration, Lighting, etc.) to get matched with customers.
-            </Text>
-            {onNavigateToOnboarding && (
-              <TouchableOpacity
-                style={styles.addCategoryBtn}
-                onPress={onNavigateToOnboarding}
-              >
-                <Text style={styles.addCategoryBtnText}>+ Select Categories</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <View style={styles.categoryGrid}>
-            {profile.categories.map((cat) => (
-              <View key={cat.id || cat.categoryId} style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeIcon}>{cat.icon || '🎪'}</Text>
-                <Text style={styles.categoryBadgeName}>{cat.name}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* F. Business Performance Overview (Maroon Analytics Card) */}
+        <BusinessOverviewCard
+          profileViews={245}
+          leadsCount={leadsCount}
+          bookingsCount={bookingsCount}
+          ratingAverage={profile?.ratingAverage ?? 4.8}
+          onSelectPeriod={(p) => {
+            // Period selector toggled
+          }}
+        />
 
-        {/* Verification Documents Summary */}
-        <Text style={styles.sectionTitle}>Verification Documents</Text>
-        {!profile?.documents || profile.documents.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📄</Text>
-            <Text style={styles.emptyTitle}>No Documents Uploaded</Text>
-            <Text style={styles.emptyText}>
-              Upload Identity Proof, Business Registration, or Address Proof for admin review.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.docSummaryGrid}>
-            {profile.documents.map((doc) => (
-              <View key={doc.id} style={styles.docMiniCard}>
-                <Text style={styles.docMiniType}>
-                  {doc.documentType.replace('_', ' ')}
-                </Text>
-                <Text
-                  style={[
-                    styles.docMiniStatus,
-                    doc.status === 'APPROVED' && styles.statusGreen,
-                    doc.status === 'REJECTED' && styles.statusRed,
-                  ]}
-                >
-                  {doc.status}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* G. Recent Leads Section */}
+        <RecentLeadsSection
+          leads={recentLeads}
+          onViewAllLeads={onNavigateToLeads || (() => {})}
+          onSelectLead={(lead) => {
+            if (onNavigateToLeads) onNavigateToLeads();
+          }}
+          onExploreServices={onNavigateToCatalog}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -219,11 +285,60 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FAF8F5', // Warm ivory canvas
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 32,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginBottom: 12,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#991B1B',
+    fontWeight: '600',
+    flex: 1,
+  },
+  retryBtn: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  retryBtnText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row',
@@ -235,14 +350,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  greeting: {
+  greetingTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.text,
+    color: '#1C1917',
   },
-  subGreeting: {
+  greetingSub: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: '#78716C',
     marginTop: 2,
   },
   logoutBtn: {
@@ -255,218 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#B91C1C',
-  },
-  actionCard: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: '#FDE68A',
-  },
-  actionCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  actionCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#92400E',
-  },
-  actionCardScore: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  actionCardSub: {
-    fontSize: 12,
-    color: '#B45309',
-    marginTop: 4,
-    marginBottom: 12,
-    lineHeight: 16,
-  },
-  actionCardBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  actionCardBtnText: {
-    color: colors.white,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  actionsRow: {
-    marginBottom: 16,
-    gap: 8,
-  },
-  catalogBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  catalogBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  manageBtn: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  manageBtnText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  heroCard: {
-    backgroundColor: colors.secondary,
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 20,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.white,
-  },
-  verifiedBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgeVerified: {
-    backgroundColor: '#DCFCE7',
-  },
-  badgeUnverified: {
-    backgroundColor: '#FEF3C7',
-  },
-  verifiedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  badgeTextVerified: {
-    color: '#15803D',
-  },
-  badgeTextUnverified: {
-    color: '#D97706',
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    color: '#FFE4E6',
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 10,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryBadgeIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  categoryBadgeName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  emptyContainer: {
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    marginBottom: 20,
-  },
-  emptyIcon: {
-    fontSize: 28,
-    marginBottom: 6,
-  },
-  emptyTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  emptyText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  addCategoryBtn: {
-    marginTop: 10,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addCategoryBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  docSummaryGrid: {
-    gap: 8,
-    marginBottom: 20,
-  },
-  docMiniCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  docMiniType: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  docMiniStatus: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#D97706',
-  },
-  statusGreen: {
-    color: '#15803D',
-  },
-  statusRed: {
-    color: '#DC2626',
   },
 });
 

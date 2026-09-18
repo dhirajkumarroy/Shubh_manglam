@@ -6,91 +6,130 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+import AppIcon from './AppIcon';
 import colors from '../theme/colors';
 
-export type ProviderTabType = 'DASHBOARD' | 'SERVICES' | 'PACKAGES' | 'INQUIRIES' | 'PROFILE';
+export type ProviderTabType =
+  | 'DASHBOARD'
+  | 'QUOTES'
+  | 'BOOKINGS'
+  | 'SERVICES'
+  | 'PACKAGES'
+  | 'INQUIRIES'
+  | 'PROFILE';
 
 interface ProviderBottomBarProps {
   activeTab: ProviderTabType;
   onTabPress: (tab: ProviderTabType) => void;
   servicesCount?: number;
+  quotesCount?: number;
+  bookingsCount?: number;
   inquiriesCount?: number;
 }
 
 export const ProviderBottomBar: React.FC<ProviderBottomBarProps> = ({
   activeTab,
   onTabPress,
-  servicesCount = 5,
-  inquiriesCount = 2,
+  servicesCount = 0,
+  bookingsCount = 0,
+  inquiriesCount = 0,
 }) => {
-  const tabs: { key: ProviderTabType; label: string; icon: string; badge?: string | number }[] = [
+  const tabs = [
     {
-      key: 'DASHBOARD',
-      label: 'Dashboard',
-      icon: '📊',
+      key: 'DASHBOARD' as ProviderTabType,
+      label: 'Home',
+      iconActive: 'home',
+      iconInactive: 'home-outline',
+      iconType: 'ionicons' as const,
+      badge: undefined,
     },
     {
-      key: 'SERVICES',
+      key: 'INQUIRIES' as ProviderTabType,
+      label: 'Leads',
+      iconActive: 'people',
+      iconInactive: 'people-outline',
+      iconType: 'ionicons' as const,
+      badge: inquiriesCount > 0 ? inquiriesCount : undefined,
+    },
+    {
+      key: 'BOOKINGS' as ProviderTabType,
+      label: 'Bookings',
+      iconActive: 'calendar',
+      iconInactive: 'calendar-outline',
+      iconType: 'ionicons' as const,
+      badge: bookingsCount > 0 ? bookingsCount : undefined,
+    },
+    {
+      key: 'SERVICES' as ProviderTabType,
       label: 'Services',
-      icon: '🎪',
+      iconActive: 'briefcase',
+      iconInactive: 'briefcase-outline',
+      iconType: 'ionicons' as const,
       badge: servicesCount > 0 ? servicesCount : undefined,
     },
     {
-      key: 'PACKAGES',
-      label: 'Packages',
-      icon: '📦',
-    },
-    {
-      key: 'INQUIRIES',
-      label: 'Inquiries',
-      icon: '📋',
-      badge: inquiriesCount > 0 ? 'New' : undefined,
-    },
-    {
-      key: 'PROFILE',
+      key: 'PROFILE' as ProviderTabType,
       label: 'Profile',
-      icon: '👤',
+      iconActive: 'person',
+      iconInactive: 'person-outline',
+      iconType: 'ionicons' as const,
+      badge: undefined,
     },
   ];
+
+  const isTabActive = (tabKey: ProviderTabType) => {
+    if (tabKey === 'DASHBOARD') return activeTab === 'DASHBOARD';
+    if (tabKey === 'INQUIRIES') return activeTab === 'INQUIRIES' || activeTab === 'QUOTES';
+    if (tabKey === 'BOOKINGS') return activeTab === 'BOOKINGS';
+    if (tabKey === 'SERVICES') return activeTab === 'SERVICES' || activeTab === 'PACKAGES';
+    if (tabKey === 'PROFILE') return activeTab === 'PROFILE';
+    return false;
+  };
 
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
-        const isActive = activeTab === tab.key;
+        const active = isTabActive(tab.key);
+        const iconName = active ? tab.iconActive : tab.iconInactive;
+        const iconColor = active ? '#881337' : '#78716C';
+
         return (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tabBtn, isActive && styles.tabBtnActive]}
+            style={styles.tabBtn}
             activeOpacity={0.7}
             onPress={() => onTabPress(tab.key)}
             accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
+            accessibilityState={{ selected: active }}
           >
-            {/* Active Indicator Top Pill */}
-            {isActive && <View style={styles.activeTopPill} />}
-
+            {/* Icon Wrap with optional badge */}
             <View style={styles.iconWrap}>
-              <Text style={[styles.tabIcon, isActive && styles.tabIconActive]}>
-                {tab.icon}
-              </Text>
-              {tab.badge && (
-                <View
-                  style={[
-                    styles.tabBadge,
-                    typeof tab.badge === 'string' ? styles.tabBadgePill : null,
-                  ]}
-                >
-                  <Text style={styles.tabBadgeText}>{tab.badge}</Text>
+              <AppIcon
+                type={tab.iconType}
+                name={iconName}
+                size={22}
+                color={iconColor}
+              />
+              {tab.badge !== undefined && (
+                <View style={styles.badgeWrap}>
+                  <Text style={styles.badgeText}>
+                    {typeof tab.badge === 'number' && tab.badge > 9 ? '9+' : tab.badge}
+                  </Text>
                 </View>
               )}
             </View>
 
-            <Text
-              style={[styles.tabLabel, isActive && styles.tabLabelActive]}
-              numberOfLines={1}
-            >
+            {/* Label */}
+            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
               {tab.label}
             </Text>
+
+            {/* Active Saffron Pill Indicator under label */}
+            {active ? (
+              <View style={styles.activePillIndicator} />
+            ) : (
+              <View style={styles.inactivePlaceholder} />
+            )}
           </TouchableOpacity>
         );
       })}
@@ -103,20 +142,20 @@ const styles = StyleSheet.create({
     height: 64,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E7E0D8',
+    borderTopColor: '#EBE5DC',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.05,
         shadowRadius: 6,
       },
       android: {
-        elevation: 8,
+        elevation: 10,
       },
       default: {},
     }),
@@ -126,37 +165,21 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    position: 'relative',
-  },
-  tabBtnActive: {
-    backgroundColor: '#FFFDF9',
-  },
-  activeTopPill: {
-    position: 'absolute',
-    top: 0,
-    width: 36,
-    height: 3,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-    backgroundColor: colors.primary,
+    paddingTop: 6,
+    paddingBottom: 4,
   },
   iconWrap: {
     position: 'relative',
     marginBottom: 2,
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabIcon: {
-    fontSize: 20,
-    opacity: 0.6,
-  },
-  tabIconActive: {
-    opacity: 1,
-    transform: [{ scale: 1.1 }],
-  },
-  tabBadge: {
+  badgeWrap: {
     position: 'absolute',
-    top: -4,
-    right: -10,
+    top: -3,
+    right: -8,
     backgroundColor: '#DC2626',
     minWidth: 16,
     height: 16,
@@ -167,25 +190,32 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
-  tabBadgePill: {
-    backgroundColor: '#16A34A',
-    minWidth: 24,
-    paddingHorizontal: 4,
-  },
-  tabBadgeText: {
+  badgeText: {
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '900',
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '600',
     color: '#78716C',
-    marginTop: 2,
+    marginTop: 1,
   },
   tabLabelActive: {
-    color: colors.primary,
+    color: '#881337', // Brand maroon
     fontWeight: '800',
+  },
+  activePillIndicator: {
+    width: 16,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#E65100', // Saffron orange indicator
+    marginTop: 3,
+  },
+  inactivePlaceholder: {
+    width: 16,
+    height: 3,
+    marginTop: 3,
   },
 });
 

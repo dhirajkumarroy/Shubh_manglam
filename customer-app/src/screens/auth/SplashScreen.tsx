@@ -14,8 +14,8 @@ export const SplashScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>Shubh <Text style={styles.logoAccent}>Mangalam</Text></Text>
-        <Text style={styles.subtitle}>Har Function, Ek App</Text>
+        <Text style={styles.logoText}>Shubh <Text style={styles.logoAccent}>Ausar</Text></Text>
+        <Text style={styles.subtitle}>शुभ अवसर • Celebrate Every Occasion</Text>
       </View>
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

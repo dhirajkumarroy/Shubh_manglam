@@ -9,7 +9,7 @@ import { BadRequestError, ForbiddenError } from '../src/common/utils/app-error';
 
 async function runVendorTests() {
   console.log('===================================================');
-  console.log('🚀 Running Shubh Mangalam Phase 4 Vendor Tests');
+  console.log('🚀 Running Shubh Ausar Phase 4 Vendor Tests');
   console.log('===================================================');
 
   const vendorService = new VendorService();

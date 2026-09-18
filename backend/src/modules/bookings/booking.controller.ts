@@ -113,4 +113,58 @@ export class BookingController {
       next(error);
     }
   };
+
+  getBookingDetails = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = this.getUserId(req);
+      const role = req.user?.role || 'CUSTOMER';
+      const { id } = req.params;
+
+      const booking = await this.service.getBookingDetails(userId, role, id);
+      res.status(200).json(ResponseDto.success('Booking retrieved successfully.', booking));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  listBookings = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = this.getUserId(req);
+      const role = req.user?.role || 'CUSTOMER';
+      const { page, limit, status, search, vendorId, customerId, eventId } = req.query;
+
+      const result = await this.service.listBookings(userId, role, {
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 20,
+        status: status as any,
+        search: search as string,
+        vendorId: vendorId as string,
+        customerId: customerId as string,
+        eventId: eventId as string,
+      });
+
+      res.status(200).json(ResponseDto.success('Bookings retrieved successfully.', result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateBookingStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = this.getUserId(req);
+      const role = req.user?.role || 'CUSTOMER';
+      const { id } = req.params;
+      const { status, note } = req.body;
+
+      if (!status) {
+        throw new BadRequestError('Status is required.');
+      }
+
+      const updated = await this.service.updateBookingStatus(userId, role, id, status, note);
+      res.status(200).json(ResponseDto.success('Booking status updated successfully.', updated));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
+

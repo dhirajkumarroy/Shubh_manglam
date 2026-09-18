@@ -1,6 +1,6 @@
 // =========================================================================
-// SHUBH MANGALAM — PRISMA DATABASE SCHEMA
-// "Har Function, Ek App"
+// SHUBH AUSAR — PRISMA DATABASE SCHEMA
+// "शुभ अवसर — Celebrate Every Occasion"
 // Local Celebration & Event-Services Marketplace
 // =========================================================================
 
@@ -95,8 +95,11 @@ enum RequirementStatus {
 
 enum QuoteStatus {
   DRAFT
+  REQUESTED
   SENT
   VIEWED
+  REVISION_REQUESTED
+  REVISED
   ACCEPTED
   REJECTED
   EXPIRED
@@ -161,8 +164,13 @@ enum NotificationType {
   TRIP_COMPLETED
   SYSTEM
   BOOKING
+  QUOTE_REQUESTED
   QUOTE_RECEIVED
+  QUOTE_REVISION_REQUESTED
+  QUOTE_REVISED
   QUOTE_ACCEPTED
+  BOOKING_CREATED
+  BOOKING_STATUS_CHANGED
   VENDOR_APPROVED
   PROMOTIONAL
 }
@@ -187,7 +195,7 @@ model User {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  // Shubh Mangalam Marketplace Relations
+  // Shubh Ausar Marketplace Relations
   addresses      Address[]
   vendorProfile  Vendor?
   events         Event[]
@@ -718,27 +726,31 @@ model TimeSlot {
 // =========================================================================
 
 model Quote {
-  id          String      @id @default(uuid())
-  quoteNumber String      @unique
-  vendorId    String
-  customerId  String
-  eventId     String?
-  bookingId   String?
-  subtotal    Decimal     @db.Decimal(12, 2)
-  discount    Decimal     @default(0.0) @db.Decimal(12, 2)
-  tax         Decimal     @default(0.0) @db.Decimal(12, 2)
-  total       Decimal     @db.Decimal(12, 2)
-  validUntil  DateTime
-  status      QuoteStatus @default(SENT)
-  notes       String?     @db.Text
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id             String         @id @default(uuid())
+  quoteNumber    String         @unique
+  vendorId       String
+  customerId     String
+  eventId        String?
+  bookingId      String?
+  subtotal       Decimal        @default(0.0) @db.Decimal(12, 2)
+  discount       Decimal        @default(0.0) @db.Decimal(12, 2)
+  tax            Decimal        @default(0.0) @db.Decimal(12, 2)
+  total          Decimal        @default(0.0) @db.Decimal(12, 2)
+  validUntil     DateTime?
+  status         QuoteStatus    @default(REQUESTED)
+  currentVersion Int            @default(1)
+  notes          String?        @db.Text
+  customerNotes  String?        @db.Text
+  revisionNotes  String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  vendor   Vendor      @relation("VendorQuotes", fields: [vendorId], references: [id], onDelete: Restrict)
-  customer User        @relation("CustomerQuotes", fields: [customerId], references: [id], onDelete: Restrict)
-  event    Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  booking  Booking?    @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  vendor   Vendor         @relation("VendorQuotes", fields: [vendorId], references: [id], onDelete: Restrict)
+  customer User           @relation("CustomerQuotes", fields: [customerId], references: [id], onDelete: Restrict)
+  event    Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  booking  Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   items    QuoteItem[]
+  versions QuoteVersion[]
 
   @@index([vendorId])
   @@index([customerId])
@@ -746,6 +758,26 @@ model Quote {
   @@index([bookingId])
   @@index([status])
   @@map("quotes")
+}
+
+model QuoteVersion {
+  id            String   @id @default(uuid())
+  quoteId       String
+  versionNumber Int
+  subtotal      Decimal  @db.Decimal(12, 2)
+  discount      Decimal  @default(0.0) @db.Decimal(12, 2)
+  tax           Decimal  @default(0.0) @db.Decimal(12, 2)
+  total         Decimal  @db.Decimal(12, 2)
+  notes         String?  @db.Text
+  revisionNotes String?  @db.Text
+  itemsJson     Json
+  createdAt     DateTime @default(now())
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@unique([quoteId, versionNumber])
+  @@index([quoteId])
+  @@map("quote_versions")
 }
 
 model QuoteItem {

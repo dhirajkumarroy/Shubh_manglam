@@ -1,6 +1,6 @@
 /**
- * Shubh Mangalam Design System — Color Tokens
- * "Har Function, Ek App"
+ * Shubh Ausar Design System — Color Tokens
+ * "शुभ अवसर — Celebrate Every Occasion"
  *
  * Warm, auspicious, and trustworthy palette inspired by Indian celebrations.
  * Primary: Warm Saffron Orange

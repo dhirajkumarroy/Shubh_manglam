@@ -21,6 +21,7 @@ import {
 import addressRouter from '../modules/addresses/address.routes';
 import marketplaceRouter from '../modules/marketplace/marketplace.routes';
 import bookingRouter from '../modules/bookings/booking.routes';
+import quoteRouter from '../modules/quotes/quote.routes';
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.get('/health', (_req, res) => {
   );
 });
 
-// Shubh Mangalam Core Routes
+// Shubh Ausar Core Routes
 router.use('/auth', authRouter);
 router.use('/users', userRouter);
 router.use('/notifications', notificationRouter);
@@ -71,6 +72,7 @@ router.use('/vendor', vendorCatalogRouter);
 router.use('/services', publicServicesRouter);
 router.use('/packages', publicPackagesRouter);
 router.use('/bookings', bookingRouter);
+router.use('/quotes', quoteRouter);
 router.use('/uploads', uploadRouter);
 
 export default router;

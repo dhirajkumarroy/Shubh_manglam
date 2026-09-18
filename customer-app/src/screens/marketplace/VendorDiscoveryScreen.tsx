@@ -20,6 +20,7 @@ import {
   useMarketplaceCategories,
 } from '../../hooks/useEventPlanning';
 import { openDialer, openWhatsApp } from '../../utils/contact';
+import { AppIcon } from '../../components/AppIcon';
 
 export const VendorDiscoveryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -111,7 +112,7 @@ export const VendorDiscoveryScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>Verified Providers</Text>
@@ -125,9 +126,9 @@ export const VendorDiscoveryScreen: React.FC = () => {
       {/* Search & Location Section */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <AppIcon name="search-outline" size={18} color="#9CA3AF" />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { marginLeft: 8 }]}
             placeholder="Search provider by name, city, service..."
             placeholderTextColor="#9CA3AF"
             value={search}
@@ -135,7 +136,7 @@ export const VendorDiscoveryScreen: React.FC = () => {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={styles.clearIcon}>✕</Text>
+              <AppIcon name="close-circle" size={16} color="#9CA3AF" />
             </TouchableOpacity>
           )}
         </View>
@@ -151,9 +152,9 @@ export const VendorDiscoveryScreen: React.FC = () => {
             {detectingGps ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Text style={styles.gpsBtnIcon}>📍</Text>
+              <AppIcon name="navigate-outline" size={14} color={activeLatitude ? '#FFFFFF' : '#881337'} />
             )}
-            <Text style={[styles.gpsBtnText, activeLatitude ? styles.gpsBtnTextActive : null]}>
+            <Text style={[styles.gpsBtnText, activeLatitude ? styles.gpsBtnTextActive : null, { marginLeft: 6 }]}>
               {detectingGps
                 ? 'Detecting Location...'
                 : activeCity
@@ -180,9 +181,9 @@ export const VendorDiscoveryScreen: React.FC = () => {
         <View style={styles.sortRow}>
           <Text style={styles.sortLabel}>Sort by:</Text>
           {[
-            { key: 'nearest', label: '📍 Nearest' },
-            { key: 'rating', label: '⭐ Top Rated' },
-            { key: 'newest', label: '✨ Newest' },
+            { key: 'nearest', label: 'Nearest' },
+            { key: 'rating', label: 'Top Rated' },
+            { key: 'newest', label: 'Newest' },
           ].map((s) => (
             <TouchableOpacity
               key={s.key}
@@ -300,7 +301,7 @@ export const VendorDiscoveryScreen: React.FC = () => {
                   <Image source={{ uri: vendor.coverImage }} style={styles.coverImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.coverPlaceholder}>
-                    <Text style={styles.coverPlaceholderIcon}>🌸</Text>
+                    <AppIcon name="business-outline" size={28} color="#881337" />
                   </View>
                 )}
 
@@ -310,16 +311,17 @@ export const VendorDiscoveryScreen: React.FC = () => {
                       {vendor.businessName}
                     </Text>
                     <View style={styles.ratingBadge}>
-                      <Text style={styles.ratingStar}>★</Text>
-                      <Text style={styles.ratingText}>
+                      <AppIcon name="star" size={11} color="#F59E0B" />
+                      <Text style={[styles.ratingText, { marginLeft: 3 }]}>
                         {vendor.ratingAverage ? Number(vendor.ratingAverage).toFixed(1) : 'New'}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.locationRow}>
-                    <Text style={styles.locationText}>
-                      📍 {vendor.city}, {vendor.state}
+                    <AppIcon name="location-outline" size={12} color="#D97706" />
+                    <Text style={[styles.locationText, { marginLeft: 4 }]}>
+                      {vendor.city}, {vendor.state}
                     </Text>
                     {vendor.distanceKm !== null && (
                       <View style={styles.distanceBadge}>
@@ -339,7 +341,6 @@ export const VendorDiscoveryScreen: React.FC = () => {
                     {vendor.categories.slice(0, 3).map((c) => (
                       <View key={c.id} style={styles.categoryPill}>
                         <Text style={styles.categoryPillText}>
-                          {c.icon ? `${c.icon} ` : ''}
                           {c.name}
                         </Text>
                       </View>
@@ -354,28 +355,30 @@ export const VendorDiscoveryScreen: React.FC = () => {
                   {/* Vendor Direct Contact Actions */}
                   <View style={styles.cardActionsRow}>
                     <TouchableOpacity
-                      style={styles.cardCallBtn}
+                      style={[styles.cardCallBtn, { flexDirection: 'row', alignItems: 'center' }]}
                       activeOpacity={0.8}
                       onPress={(e) => {
                         e.stopPropagation();
                         openDialer(vendor.phone);
                       }}
                     >
-                      <Text style={styles.cardCallBtnText}>📞 Call</Text>
+                      <AppIcon name="call" size={12} color="#881337" />
+                      <Text style={[styles.cardCallBtnText, { marginLeft: 4 }]}>Call</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.cardWhatsAppBtn}
+                      style={[styles.cardWhatsAppBtn, { flexDirection: 'row', alignItems: 'center' }]}
                       activeOpacity={0.8}
                       onPress={(e) => {
                         e.stopPropagation();
                         openWhatsApp(
                           vendor.phone,
-                          `Hello ${vendor.businessName}, I found your profile on Shubh Mangalam and would like to inquire about your celebration services.`
+                          `Hello ${vendor.businessName}, I found your profile on Shubh Ausar and would like to inquire about your celebration services.`
                         );
                       }}
                     >
-                      <Text style={styles.cardWhatsAppBtnText}>💬 WhatsApp</Text>
+                      <AppIcon name="logo-whatsapp" size={12} color="#16A34A" />
+                      <Text style={[styles.cardWhatsAppBtnText, { marginLeft: 4 }]}>WhatsApp</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -391,7 +394,7 @@ export const VendorDiscoveryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   header: {
     flexDirection: 'row',

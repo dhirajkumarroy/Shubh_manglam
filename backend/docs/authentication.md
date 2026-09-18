@@ -1,8 +1,8 @@
-# Shubh Mangalam — Authentication, Authorization & Sessions (Phase 3)
+# Shubh Ausar (शुभ अवसर) — Authentication, Authorization & Sessions (Phase 3)
 
 ## 1. Architectural Philosophy
 
-**Shubh Mangalam** employs a **Single Identity, Multi-Role Architecture**. There is exactly one central user authentication system in the PostgreSQL database (`users` table) accessed by three distinct applications:
+**Shubh Ausar** employs a **Single Identity, Multi-Role Architecture**. There is exactly one central user authentication system in the PostgreSQL database (`users` table) accessed by three distinct applications:
 
 ```text
 Customer App (Mobile)       Provider App (Mobile)       Admin Web (Browser)
@@ -29,7 +29,7 @@ Customer App (Mobile)       Provider App (Mobile)       Admin Web (Browser)
 
 ## 2. Authentication vs. Provider Approval
 
-A critical principle of Shubh Mangalam is the separation of **Authentication** and **Business Approval**:
+A critical principle of Shubh Ausar is the separation of **Authentication** and **Business Approval**:
 
 ```text
 Vendor Registers
@@ -110,23 +110,23 @@ When a client calls `POST /api/v1/auth/refresh`:
 
 ## 6. Seed Accounts (Development & Testing)
 
-Default password: `process.env.SEED_DEFAULT_PASSWORD` (defaults to `ShubhMangalam@2026!`).
+Default password: `process.env.SEED_DEFAULT_PASSWORD` (defaults to `ShubhAusar@2026!`).
 
 ### 6.1 Customer Demo
-- **Email**: `customer.demo@shubhmangalam.local`
+- **Email**: `customer.demo@shubhausar.local`
 - **Phone**: `+919800000001`
 - **Role**: `CUSTOMER`
 - **Status**: `ACTIVE` (`emailVerified: true`)
 
 ### 6.2 Provider Demo
-- **Email**: `provider.demo@shubhmangalam.local`
+- **Email**: `provider.demo@shubhausar.local`
 - **Phone**: `+919800000002`
 - **Role**: `VENDOR`
 - **Status**: `ACTIVE`
 - **Vendor Profile**: *Royal Events & Celebrations* (`status = APPROVED`, `isVerified = true`)
 
 ### 6.3 Admin Demo
-- **Email**: `admin.demo@shubhmangalam.local`
+- **Email**: `admin.demo@shubhausar.local`
 - **Phone**: `+919800000003`
 - **Role**: `ADMIN`
 - **Status**: `ACTIVE`

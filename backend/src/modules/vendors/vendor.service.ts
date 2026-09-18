@@ -155,6 +155,15 @@ export class VendorService {
         createdAt: doc.createdAt,
       })),
       completeness,
+      user: vendor.user
+        ? {
+            id: vendor.user.id,
+            name: vendor.user.name,
+            email: vendor.user.email,
+            phone: vendor.user.phone,
+            avatar: vendor.user.avatar || null,
+          }
+        : undefined,
     };
   }
 
@@ -287,7 +296,7 @@ export class VendorService {
     // Notify Vendor
     await this.notificationService.createNotification(userId, {
       title: 'Application Submitted for Review',
-      message: 'Your vendor profile has been submitted to the Shubh Mangalam administrative team for review.',
+      message: 'Your vendor profile has been submitted to the Shubh Ausar administrative team for review.',
       type: 'SYSTEM',
     }).catch(() => {});
 

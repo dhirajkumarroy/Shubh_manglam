@@ -1,6 +1,6 @@
-# Shubh Mangalam: Architecture, Workflow & Technical Guide
+# Shubh Ausar (शुभ अवसर): Architecture, Workflow & Technical Guide
 
-> **"Har Celebration, Ek Platform"** — A full-stack, multi-application marketplace for discovering, booking, and managing local event services, cultural ceremonies, and family celebrations.
+> **"शुभ अवसर — Celebrate Every Occasion"** — A full-stack, multi-application marketplace for discovering, booking, and managing local event services, cultural ceremonies, and family celebrations.
 
 ---
 
@@ -29,7 +29,7 @@
 
 Planning an Indian celebration—whether a birthday party, wedding, mundan, griha pravesh, or festive pooja—is traditionally stressful and fragmented. Families spend days calling local halwais, tent houses, sound vendors, decorators, and makeup artists with zero pricing transparency and uncertain availability.
 
-**Shubh Mangalam** unifies this entire ecosystem into one coordinated digital platform:
+**Shubh Ausar (शुभ अवसर)** unifies this entire ecosystem into one coordinated digital platform:
 - **Customers** easily discover verified local service providers, check services and pricing, and submit precise event inquiries with occasion details, dates, guest counts, and special notes.
 - **Service Providers (Vendors)** receive real-time inquiry cards, review occasion specifications, and accept or reject requests with one tap, plus call or WhatsApp customers directly.
 - **Platform Administrators** maintain catalog taxonomy, verify KYC credentials, monitor booking fulfillment rates, and review provider acceptance performance.
@@ -351,4 +351,4 @@ All seeded accounts use password: **`Password@123`**
 
 ---
 
-*Authored with dedication for Shubh Mangalam — Transforming celebration planning across India.*
+*Authored with dedication for Shubh Ausar (शुभ अवसर) — Transforming celebration planning across India.*

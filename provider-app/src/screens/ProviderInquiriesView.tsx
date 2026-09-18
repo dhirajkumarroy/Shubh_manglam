@@ -85,7 +85,7 @@ export const ProviderInquiriesView: React.FC = () => {
     }
     const digits = phone.replace(/\D/g, '');
     const cleanNumber = digits.length === 10 ? `91${digits}` : digits;
-    const msg = `Hello ${customerName}, thanks for your celebration inquiry regarding "${serviceName}" on Shubh Mangalam. We are pleased to assist you. What are your specific requirements?`;
+    const msg = `Hello ${customerName}, thanks for your celebration inquiry regarding "${serviceName}" on Shubh Ausar. We are pleased to assist you. What are your specific requirements?`;
     const url = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(msg)}`;
     try {
       await Linking.openURL(url);

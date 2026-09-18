@@ -1,8 +1,8 @@
-# Shubh Mangalam — Database Domain Documentation (Phase 2)
+# Shubh Ausar (शुभ अवसर) — Database Domain Documentation (Phase 2)
 
 ## 1. Overview & Core Philosophy
 
-**Shubh Mangalam** (*"Har Function, Ek App"*) is a hyper-local celebration and event-services marketplace designed for Indian towns, tier-2/tier-3 cities, and metro regions.
+**Shubh Ausar** (*"शुभ अवसर — Celebrate Every Occasion"*) is a hyper-local celebration and event-services marketplace designed for Indian towns, tier-2/tier-3 cities, and metro regions.
 
 The database is built on **generic celebration concepts**, intentionally avoiding wedding-only restrictions. The system dynamically models diverse occasions such as:
 - **Weddings & Pre-Wedding Functions:** Wedding, Engagement, Reception, Haldi, Sangeet
@@ -208,7 +208,7 @@ enum PricingType {
 
 ## 6. Location Strategy
 
-Local discovery is fundamental to Shubh Mangalam:
+Local discovery is fundamental to Shubh Ausar:
 - Both `Address`, `Vendor`, and `Event` maintain decimal latitude (`Decimal(10, 8)`) and longitude (`Decimal(11, 8)`).
 - Vendors maintain `operatingRadiusKm` (e.g., 25.0 km).
 - Fast spatial queries utilize standard bounding box indexing (`@@index([latitude, longitude])`) combined with the Haversine formula at the application/query level.
@@ -225,7 +225,7 @@ To prevent accidental data loss and maintain backward compatibility during devel
 - `FareRule`
 - `Role`, `FuelType`, `Transmission`, `VehicleCategory`, `VehicleStatus`, `BookingStatusLegacy`, `PaymentStatusLegacy`, `PaymentMethodLegacy`
 
-### Migration Roadmap to Shubh Mangalam:
+### Migration Roadmap to Shubh Ausar:
 In future phases, **Transportation** is treated as a standard event service category (already seeded under `Category: Transportation`). Event-related vehicle bookings (e.g., Doli cars, vintage groom cars, guest transit buses) will be integrated directly into the `Service` and `Booking` models, deprecating the standalone GoVehicle transport tables.
 
 ---

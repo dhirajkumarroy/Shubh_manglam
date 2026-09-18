@@ -34,7 +34,7 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(25),
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
-  SMTP_FROM: z.string().default('Shubh Mangalam <no-reply@shubhmangalam.com>'),
+  SMTP_FROM: z.string().default('Shubh Ausar <no-reply@shubhausar.com>'),
   
   CLOUDINARY_CLOUD_NAME: z.string().default(''),
   CLOUDINARY_API_KEY: z.string().default(''),
@@ -61,7 +61,7 @@ const envSchema = z.object({
 
   // MFA & Security
   MFA_ENCRYPTION_KEY: z.string().default('d791609508c549049cd86591d3aad804e123456789abcdef0123456789abcdef'),
-  SEED_DEFAULT_PASSWORD: z.string().default('ShubhMangalam@2026!'),
+  SEED_DEFAULT_PASSWORD: z.string().default('ShubhAusar@2026!'),
 });
 
 

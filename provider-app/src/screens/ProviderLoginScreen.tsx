@@ -74,8 +74,8 @@ export const ProviderLoginScreen: React.FC<ProviderLoginScreenProps> = ({
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.badge}>Partner Portal</Text>
-          <Text style={styles.title}>Shubh Mangalam</Text>
-          <Text style={styles.subtitle}>Sign in to manage your bookings and leads</Text>
+          <Text style={styles.title}>Shubh Ausar</Text>
+          <Text style={styles.subtitle}>शुभ अवसर • Sign in to manage your bookings and leads</Text>
         </View>
 
         <View style={styles.form}>

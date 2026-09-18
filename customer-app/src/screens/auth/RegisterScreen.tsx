@@ -77,7 +77,7 @@ export const RegisterScreen: React.FC = () => {
       .then(() => {
         Alert.alert(
           'Registration Successful!',
-          'Welcome to Shubh Mangalam. Your profile has been created successfully.'
+          'Welcome to Shubh Ausar. Your profile has been created successfully.'
         );
       })
       .catch((err) => {
@@ -110,7 +110,7 @@ export const RegisterScreen: React.FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>Join Shubh Mangalam</Text>
+          <Text style={styles.title}>Join Shubh Ausar</Text>
           <Text style={styles.subtitle}>Create your profile for every celebration and service</Text>
         </View>
 

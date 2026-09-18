@@ -18,6 +18,7 @@ import {
   useCreateAddress,
   useDeleteAddress,
 } from '../../hooks/useEventPlanning';
+import { AppIcon } from '../../components/AppIcon';
 
 export const LocationSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -149,7 +150,7 @@ export const LocationSelectionScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>Celebration Location</Text>
@@ -165,8 +166,8 @@ export const LocationSelectionScreen: React.FC = () => {
           onPress={handleDetectGps}
           disabled={detectingGps}
         >
-          <Text style={styles.gpsIcon}>📍</Text>
-          <View style={styles.gpsTextWrap}>
+          <AppIcon name="navigate-circle-outline" size={26} color="#FFFFFF" />
+          <View style={[styles.gpsTextWrap, { marginLeft: 10 }]}>
             <Text style={styles.gpsTitle}>Use Current GPS Location</Text>
             <Text style={styles.gpsSubtitle}>
               Automatically find vendors nearby based on device coordinates
@@ -280,7 +281,7 @@ export const LocationSelectionScreen: React.FC = () => {
                     style={styles.deleteAddrBtn}
                     onPress={() => handleDeleteAddress(addr.id)}
                   >
-                    <Text style={styles.deleteAddrIcon}>🗑️</Text>
+                    <AppIcon name="trash-outline" size={16} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
 
@@ -300,7 +301,7 @@ export const LocationSelectionScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   header: {
     flexDirection: 'row',

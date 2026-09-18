@@ -145,4 +145,11 @@ export interface FullVendorProfile {
   }[];
   documents: VendorDocumentItem[];
   completeness: ProfileCompleteness;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    avatar?: string | null;
+  };
 }

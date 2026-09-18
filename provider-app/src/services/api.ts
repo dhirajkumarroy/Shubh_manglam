@@ -373,5 +373,82 @@ export class ProviderApiService {
     });
     return res.data;
   }
+
+  // =========================================================================
+  // Formal Quotations & Negotiation
+  // =========================================================================
+
+  static async getVendorQuotes(params?: Record<string, any>): Promise<{ quotes: any[]; total: number }> {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    const res = await this.request<{ quotes: any[]; pagination: { total: number } }>(`/quotes${query}`, {
+      method: 'GET',
+    });
+    return {
+      quotes: res.data.quotes || [],
+      total: res.data.pagination?.total || 0,
+    };
+  }
+
+  static async getQuoteDetails(id: string): Promise<any> {
+    const res = await this.request<any>(`/quotes/${id}`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async createFormalQuote(body: any): Promise<any> {
+    const res = await this.request<any>('/quotes', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async reviseQuote(id: string, body: any): Promise<any> {
+    const res = await this.request<any>(`/quotes/${id}/revise`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async rejectQuote(id: string, reason?: string): Promise<any> {
+    const res = await this.request<any>(`/quotes/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  }
+
+  // =========================================================================
+  // Formal Confirmed Bookings
+  // =========================================================================
+
+  static async getVendorBookings(params?: Record<string, any>): Promise<{ bookings: any[]; total: number }> {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    const res = await this.request<{ bookings: any[]; pagination: { total: number } }>(`/bookings${query}`, {
+      method: 'GET',
+    });
+    return {
+      bookings: res.data.bookings || [],
+      total: res.data.pagination?.total || 0,
+    };
+  }
+
+  static async getBookingDetails(id: string): Promise<any> {
+    const res = await this.request<any>(`/bookings/${id}`, {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async updateBookingStatus(id: string, status: string, note?: string): Promise<any> {
+    const res = await this.request<any>(`/bookings/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, note }),
+    });
+    return res.data;
+  }
 }
+
 

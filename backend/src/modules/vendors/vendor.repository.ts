@@ -10,6 +10,15 @@ export class VendorRepository {
     return prisma.vendor.findUnique({
       where: { userId },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            avatar: true,
+          },
+        },
         categories: {
           include: {
             category: true,

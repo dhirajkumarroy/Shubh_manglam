@@ -141,7 +141,7 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
           </View>
 
           <Text style={styles.sheetSubtitle}>
-            Continue with your Google account to access your Shubh Mangalam business portal
+            Continue with your Google account to access your Shubh Ausar business portal
           </Text>
 
           {activeError && (

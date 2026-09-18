@@ -16,6 +16,7 @@ import {
   useDeleteEvent,
   useDeleteRequirement,
 } from '../../hooks/useEventPlanning';
+import { AppIcon } from '../../components/AppIcon';
 
 export const EventDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -119,7 +120,7 @@ export const EventDetailsScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title} numberOfLines={1}>
@@ -128,7 +129,7 @@ export const EventDetailsScreen: React.FC = () => {
           <Text style={styles.subTitle}>Event Overview & Requirements</Text>
         </View>
         <TouchableOpacity style={styles.deleteHeaderBtn} onPress={handleDeleteEvent}>
-          <Text style={styles.deleteHeaderIcon}>🗑️</Text>
+          <AppIcon name="trash-outline" size={18} color="#EF4444" />
         </TouchableOpacity>
       </View>
 
@@ -137,8 +138,8 @@ export const EventDetailsScreen: React.FC = () => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryTopRow}>
             <View style={styles.typeTag}>
-              <Text style={styles.typeIcon}>{event.eventType?.icon || '🎉'}</Text>
-              <Text style={styles.typeText}>{event.eventType?.name || 'Celebration'}</Text>
+              <AppIcon name="sparkles" size={13} color="#881337" />
+              <Text style={[styles.typeText, { marginLeft: 4 }]}>{event.eventType?.name || 'Celebration'}</Text>
             </View>
             <View style={styles.statusBadge}>
               <Text style={styles.statusBadgeText}>{event.status}</Text>
@@ -150,7 +151,10 @@ export const EventDetailsScreen: React.FC = () => {
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>📅 DATE</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                <AppIcon name="calendar-outline" size={11} color="#D97706" />
+                <Text style={[styles.infoLabel, { marginLeft: 4 }]}>DATE</Text>
+              </View>
               <Text style={styles.infoValue}>
                 {new Date(event.eventDate).toLocaleDateString('en-IN', {
                   day: 'numeric',
@@ -160,17 +164,26 @@ export const EventDetailsScreen: React.FC = () => {
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>⏰ TIME</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                <AppIcon name="time-outline" size={11} color="#D97706" />
+                <Text style={[styles.infoLabel, { marginLeft: 4 }]}>TIME</Text>
+              </View>
               <Text style={styles.infoValue}>
                 {event.startTime || '18:00'} - {event.endTime || '23:00'}
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>👥 GUESTS</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                <AppIcon name="people-outline" size={11} color="#6B7280" />
+                <Text style={[styles.infoLabel, { marginLeft: 4 }]}>GUESTS</Text>
+              </View>
               <Text style={styles.infoValue}>{event.guestCount || 'Not specified'}</Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>💰 BUDGET</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                <AppIcon name="cash-outline" size={11} color="#059669" />
+                <Text style={[styles.infoLabel, { marginLeft: 4 }]}>BUDGET</Text>
+              </View>
               <Text style={styles.infoValue}>
                 {event.budgetMin && event.budgetMax
                   ? `₹${Number(event.budgetMin).toLocaleString()} - ₹${Number(event.budgetMax).toLocaleString()}`
@@ -180,8 +193,8 @@ export const EventDetailsScreen: React.FC = () => {
           </View>
 
           <View style={styles.locationBox}>
-            <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText}>
+            <AppIcon name="location-outline" size={14} color="#D97706" />
+            <Text style={[styles.locationText, { marginLeft: 4 }]}>
               {event.addressLine1}, {event.city} ({event.pincode})
             </Text>
           </View>
@@ -279,7 +292,7 @@ export const EventDetailsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   centerBox: {
     flex: 1,

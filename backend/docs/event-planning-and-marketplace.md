@@ -1,6 +1,6 @@
-# Shubh Mangalam — Customer Event Planning & Marketplace Discovery Documentation
+# Shubh Ausar (शुभ अवसर) — Customer Event Planning & Marketplace Discovery Documentation
 
-This document describes the Phase 6 architecture, endpoints, database integration, ownership security, and location discovery algorithms for Shubh Mangalam.
+This document describes the Phase 6 architecture, endpoints, database integration, ownership security, and location discovery algorithms for Shubh Ausar.
 
 ---
 

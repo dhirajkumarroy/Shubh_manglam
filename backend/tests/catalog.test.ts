@@ -8,7 +8,7 @@ import { BadRequestError } from '../src/common/utils/app-error';
 
 async function runCatalogTests() {
   console.log('===================================================');
-  console.log('🚀 Running Shubh Mangalam Phase 5 Catalog Tests');
+  console.log('🚀 Running Shubh Ausar Phase 5 Catalog Tests');
   console.log('===================================================');
 
   const catalogService = new CatalogService();

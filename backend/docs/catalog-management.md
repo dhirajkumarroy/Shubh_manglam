@@ -1,8 +1,8 @@
-# Shubh Mangalam — Dynamic Catalog Management (Phase 5)
+# Shubh Ausar (शुभ अवसर) — Dynamic Catalog Management (Phase 5)
 
 ## 1. Overview & Architecture
 
-The Shubh Mangalam Catalog is a dynamic, database-driven marketplace hierarchy designed for wedding, celebration, and event planning services across India.
+The Shubh Ausar Catalog is a dynamic, database-driven marketplace hierarchy designed for wedding, celebration, and event planning services across India.
 
 ### Catalog Hierarchy
 

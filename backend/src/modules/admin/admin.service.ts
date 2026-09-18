@@ -28,10 +28,10 @@ export class AdminService {
   }
 
   /**
-   * Retrieves dashboard statistics for Shubh Mangalam.
+   * Retrieves dashboard statistics for Shubh Ausar.
    */
   async getDashboardStats(): Promise<AdminDashboardStats> {
-    logger.info('AdminService: Fetching Shubh Mangalam dashboard stats');
+    logger.info('AdminService: Fetching Shubh Ausar dashboard stats');
     return this.adminRepository.getDashboardStats();
   }
 
@@ -240,7 +240,7 @@ export class AdminService {
     // Notify Vendor
     await this.notificationService.createNotification(vendor.userId, {
       title: 'Congratulations! Vendor Account Approved',
-      message: 'Your Shubh Mangalam vendor account has been verified and approved. You can now operate and accept bookings.',
+      message: 'Your Shubh Ausar vendor account has been verified and approved. You can now operate and accept bookings.',
       type: 'VENDOR_APPROVED',
     }).catch(() => {});
 

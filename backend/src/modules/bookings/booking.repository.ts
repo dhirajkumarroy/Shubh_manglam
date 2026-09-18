@@ -154,11 +154,158 @@ export class BookingRepository {
     return prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        vendor: true,
-        customer: true,
-        items: true,
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            phone: true,
+            email: true,
+            city: true,
+            logo: true,
+            userId: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        event: true,
+        items: {
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+              },
+            },
+          },
+        },
+        quotes: {
+          select: {
+            id: true,
+            quoteNumber: true,
+            status: true,
+            total: true,
+          },
+        },
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            provider: true,
+            createdAt: true,
+          },
+        },
       },
     });
+  }
+
+  async listBookings(query: {
+    page?: number;
+    limit?: number;
+    status?: BookingStatus;
+    vendorId?: string;
+    customerId?: string;
+    eventId?: string;
+    search?: string;
+  }) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.BookingWhereInput = {};
+
+    if (query.status) {
+      where.status = query.status;
+    }
+    if (query.vendorId) {
+      where.vendorId = query.vendorId;
+    }
+    if (query.customerId) {
+      where.customerId = query.customerId;
+    }
+    if (query.eventId) {
+      where.eventId = query.eventId;
+    }
+    if (query.search) {
+      where.OR = [
+        { bookingNumber: { contains: query.search, mode: 'insensitive' } },
+        { customerNote: { contains: query.search, mode: 'insensitive' } },
+        { vendorNote: { contains: query.search, mode: 'insensitive' } },
+        { vendor: { businessName: { contains: query.search, mode: 'insensitive' } } },
+        { customer: { name: { contains: query.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [total, bookings] = await Promise.all([
+      prisma.booking.count({ where }),
+      prisma.booking.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          vendor: {
+            select: {
+              id: true,
+              businessName: true,
+              phone: true,
+              city: true,
+              logo: true,
+              userId: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+              avatar: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              title: true,
+              eventDate: true,
+              guestCount: true,
+              addressLine1: true,
+              city: true,
+              pincode: true,
+            },
+          },
+          items: true,
+          payments: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              status: true,
+              amount: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      bookings,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async updateStatus(

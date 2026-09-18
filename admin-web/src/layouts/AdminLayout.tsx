@@ -8,6 +8,7 @@ import {
   Tag, 
   Layers,
   Package,
+  FileText,
   CreditCard, 
   Star, 
   Settings, 
@@ -24,6 +25,7 @@ const NAVIGATION_ITEMS = [
   { name: 'Categories', path: '/categories', icon: Tag },
   { name: 'Catalog Services', path: '/services', icon: Layers },
   { name: 'Package Combos', path: '/packages', icon: Package },
+  { name: 'Quotes & Proposals', path: '/quotes', icon: FileText },
   { name: 'Event Bookings', path: '/bookings', icon: Calendar },
   { name: 'Payments & Payouts', path: '/payments', icon: CreditCard },
   { name: 'Reviews & Quality', path: '/reviews', icon: Star },
@@ -47,11 +49,11 @@ export const AdminLayout: React.FC = () => {
         <div className="p-6 border-b border-[#E7E0D8]">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-black text-lg shadow-sm">
-              SM
+              SA
             </div>
             <div>
-              <h1 className="font-extrabold text-base text-[#1C1917] tracking-tight">Shubh Mangalam</h1>
-              <p className="text-xs text-primary font-medium">Admin Central Console</p>
+              <h1 className="font-extrabold text-base text-[#1C1917] tracking-tight">Shubh Ausar</h1>
+              <p className="text-xs text-primary font-medium">शुभ अवसर • Admin Console</p>
             </div>
           </div>
         </div>
@@ -86,7 +88,7 @@ export const AdminLayout: React.FC = () => {
             <span>Sign Out Console</span>
           </button>
           <div className="text-[11px] text-[#78716C] text-center">
-            <p className="font-semibold text-[#1C1917]">Shubh Mangalam Admin</p>
+            <p className="font-semibold text-[#1C1917]">Shubh Ausar Admin</p>
             <p>Phase 3 Security Active</p>
           </div>
         </div>

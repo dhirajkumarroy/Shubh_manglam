@@ -173,4 +173,115 @@ export class BookingService {
   async getInquiryAnalytics() {
     return this.repository.getInquiryAnalytics();
   }
+
+  async getBookingDetails(userId: string, role: string, bookingId: string) {
+    const booking = await this.repository.findById(bookingId);
+    if (!booking) {
+      throw new NotFoundError('Booking not found.');
+    }
+
+    const isCustomer = booking.customerId === userId;
+    const isVendor = booking.vendor.userId === userId;
+    const isAdmin = role === 'ADMIN';
+
+    if (!isCustomer && !isVendor && !isAdmin) {
+      throw new ForbiddenError('You do not have permission to view this booking.');
+    }
+
+    return {
+      ...booking,
+      inquiryDetails: this.parseInquiryNote(booking.customerNote),
+    };
+  }
+
+  async listBookings(userId: string, role: string, query: any) {
+    if (role === 'CUSTOMER') {
+      return this.repository.listBookings({
+        ...query,
+        customerId: userId,
+      });
+    }
+
+    if (role === 'VENDOR') {
+      const vendor = await prisma.vendor.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      if (!vendor) {
+        throw new ForbiddenError('Vendor profile not found for user.');
+      }
+      return this.repository.listBookings({
+        ...query,
+        vendorId: vendor.id,
+      });
+    }
+
+    if (role === 'ADMIN') {
+      return this.repository.listBookings(query);
+    }
+
+    throw new ForbiddenError('Unauthorized to view bookings.');
+  }
+
+  async updateBookingStatus(
+    userId: string,
+    role: string,
+    bookingId: string,
+    newStatus: BookingStatus,
+    note?: string
+  ) {
+    const booking = await this.repository.findById(bookingId);
+    if (!booking) {
+      throw new NotFoundError('Booking not found.');
+    }
+
+    const isCustomer = booking.customerId === userId;
+    const isVendor = booking.vendor.userId === userId;
+    const isAdmin = role === 'ADMIN';
+
+    if (!isCustomer && !isVendor && !isAdmin) {
+      throw new ForbiddenError('You do not have permission to modify this booking.');
+    }
+
+    // Role-specific transition rules
+    if (isCustomer && newStatus !== BookingStatus.CANCELLED) {
+      throw new BadRequestError('Customers can only cancel a booking.');
+    }
+
+    if (isVendor && !([BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED, BookingStatus.CANCELLED] as BookingStatus[]).includes(newStatus)) {
+      throw new BadRequestError(`Vendors cannot set status to ${newStatus}.`);
+    }
+
+    const now = new Date();
+    const updated = await this.repository.updateStatus(bookingId, newStatus, {
+      vendorNote: note || booking.vendorNote || undefined,
+      confirmedAt: newStatus === BookingStatus.CONFIRMED ? now : undefined,
+      cancelledAt: newStatus === BookingStatus.CANCELLED ? now : undefined,
+    });
+
+    // Notify the other party
+    try {
+      const targetUserId = isCustomer ? booking.vendor.userId : booking.customerId;
+      if (targetUserId) {
+        await prisma.notification.create({
+          data: {
+            userId: targetUserId,
+            title: `Booking #${booking.bookingNumber} Status Updated`,
+            message: `Status changed to ${newStatus}.${note ? ` Note: ${note}` : ''}`,
+            type: NotificationType.BOOKING_STATUS_CHANGED,
+            data: {
+              bookingId: booking.id,
+              bookingNumber: booking.bookingNumber,
+              newStatus,
+            },
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to dispatch status change notification:', err);
+    }
+
+    return updated;
+  }
 }
+

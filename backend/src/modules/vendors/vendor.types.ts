@@ -79,4 +79,11 @@ export interface VendorProfileResponse {
     createdAt: Date;
   }[];
   completeness: ProfileCompletenessResult;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+  };
 }

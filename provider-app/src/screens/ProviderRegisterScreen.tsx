@@ -93,8 +93,8 @@ export const ProviderRegisterScreen: React.FC<ProviderRegisterScreenProps> = ({
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.badge}>Partner Onboarding</Text>
-          <Text style={styles.title}>Join Shubh Mangalam</Text>
-          <Text style={styles.subtitle}>List your decoration, catering, tent, DJ, or event service</Text>
+          <Text style={styles.title}>Join Shubh Ausar</Text>
+          <Text style={styles.subtitle}>शुभ अवसर • List your catering, decor, makeup, or event services</Text>
         </View>
 
         <View style={styles.form}>

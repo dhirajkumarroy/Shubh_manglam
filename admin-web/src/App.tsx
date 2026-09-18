@@ -13,6 +13,8 @@ import ServicesPage from './pages/ServicesPage';
 import PackagesPage from './pages/PackagesPage';
 import EventTypesPage from './pages/EventTypesPage';
 import UsersPage from './pages/UsersPage';
+import QuotesPage from './pages/QuotesPage';
+import BookingsPage from './pages/BookingsPage';
 
 const queryClient = new QueryClient();
 
@@ -33,6 +35,8 @@ export default function App() {
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="services" element={<ServicesPage />} />
                 <Route path="packages" element={<PackagesPage />} />
+                <Route path="quotes" element={<QuotesPage />} />
+                <Route path="bookings" element={<BookingsPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

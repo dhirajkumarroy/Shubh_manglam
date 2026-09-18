@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: shubhmangalam_backend
+    container_name: shubhausar_backend
     restart: always
     ports:
       - "8000:8000"
@@ -26,7 +26,7 @@ services:
 
   postgres:
     image: postgres:15-alpine
-    container_name: shubhmangalam_postgres
+    container_name: shubhausar_postgres
     restart: always
     environment:
       - POSTGRES_USER=postgres
@@ -44,7 +44,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: shubhmangalam_redis
+    container_name: shubhausar_redis
     restart: always
     ports:
       - "6379:6379"

@@ -12,10 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import colors from '../../theme/colors';
 import { usePackageDetails } from '../../hooks/useEventPlanning';
+import RequestQuoteModal from '../quotes/RequestQuoteModal';
+import { AppIcon } from '../../components/AppIcon';
 
 export const PackageDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const [quoteModalVisible, setQuoteModalVisible] = React.useState(false);
   const packageId = route.params?.packageId;
   const eventId = route.params?.eventId;
 
@@ -60,7 +63,7 @@ export const PackageDetailsScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <AppIcon name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {pkg.name}
@@ -70,7 +73,7 @@ export const PackageDetailsScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Banner */}
         <View style={styles.banner}>
-          <Text style={styles.bannerIcon}>🎁</Text>
+          <AppIcon name="gift-outline" size={32} color="#881337" />
           <View style={styles.bannerBadges}>
             <View style={styles.dealBadge}>
               <Text style={styles.dealBadgeText}>CELEBRATION BUNDLE</Text>
@@ -138,12 +141,15 @@ export const PackageDetailsScreen: React.FC = () => {
               <View style={styles.vendorCardBody}>
                 <View style={styles.vendorInfo}>
                   <Text style={styles.vendorName}>{pkg.vendor.businessName}</Text>
-                  <Text style={styles.vendorLocation}>
-                    📍 {pkg.vendor.city}, {pkg.vendor.state}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                    <AppIcon name="location-outline" size={12} color="#D97706" />
+                    <Text style={[styles.vendorLocation, { marginLeft: 4 }]}>
+                      {pkg.vendor.city}, {pkg.vendor.state}
+                    </Text>
+                  </View>
                   <View style={styles.vendorRatingRow}>
-                    <Text style={styles.ratingStar}>★</Text>
-                    <Text style={styles.ratingNum}>
+                    <AppIcon name="star" size={12} color="#F59E0B" />
+                    <Text style={[styles.ratingNum, { marginLeft: 3 }]}>
                       {pkg.vendor.ratingAverage ? Number(pkg.vendor.ratingAverage).toFixed(1) : 'New'}
                     </Text>
                     <Text style={styles.ratingCount}>({pkg.vendor.ratingCount} reviews)</Text>
@@ -174,10 +180,25 @@ export const PackageDetailsScreen: React.FC = () => {
           <Text style={styles.bottomPrice}>₹{Number(pkg.price).toLocaleString()}</Text>
         </View>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={handleAction}>
-          <Text style={styles.actionBtnText}>Inquire Package →</Text>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: '#881337', flexDirection: 'row', alignItems: 'center' }]}
+          onPress={() => setQuoteModalVisible(true)}
+        >
+          <AppIcon name="document-text-outline" size={16} color="#FFFFFF" />
+          <Text style={[styles.actionBtnText, { marginLeft: 6 }]}>Request Quote</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Formal Quote Modal */}
+      {pkg.vendor && (
+        <RequestQuoteModal
+          visible={quoteModalVisible}
+          onClose={() => setQuoteModalVisible(false)}
+          vendorId={pkg.vendor.id}
+          vendorName={pkg.vendor.businessName}
+          onSuccess={(qId) => navigation.navigate('QuoteDetailsScreen', { quoteId: qId })}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -185,7 +206,7 @@ export const PackageDetailsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAF8F5',
   },
   centerBox: {
     flex: 1,

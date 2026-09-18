@@ -48,9 +48,9 @@ export const LoginPage: React.FC = () => {
           <span className="block text-xs font-bold uppercase tracking-widest text-[#D97706] mb-1">
             Executive Portal
           </span>
-          <h1 className="text-2xl font-black text-[#1C1917]">Shubh Mangalam Admin</h1>
+          <h1 className="text-2xl font-black text-[#1C1917]">Shubh Ausar Admin</h1>
           <p className="text-xs text-[#78716C] mt-1">
-            Sign in with administrative credentials to access platform governance
+            शुभ अवसर • Administrative Governance Console
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export const LoginPage: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin.demo@shubhmangalam.local"
+                  placeholder="admin.demo@shubhausar.local"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-[#E7E0D8] bg-[#FAF8F5] text-sm text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#800020] focus:border-transparent transition"
                 />
               </div>

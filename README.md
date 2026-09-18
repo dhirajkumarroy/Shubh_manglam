@@ -1,13 +1,13 @@
-# 🪔 Shubh Mangalam (शुभ मंगलम)
+# 🪔 Shubh Ausar (शुभ अवसर)
 
-> ### *"Har Celebration, Ek Platform"*
+> ### *"शुभ अवसर — Celebrate Every Occasion"*
 > A full-stack, multi-application marketplace for discovering, booking, and managing local event services, cultural ceremonies, and family celebrations across India.
 
 ---
 
 ## 🌟 Overview
 
-**Shubh Mangalam** eliminates the chaos of planning Indian celebrations. Whether organizing a **Birthday Party on 20 September**, a grand **Wedding & Reception**, a **Mundan ceremony**, or festive **Pooja rituals**, Shubh Mangalam connects event hosts with verified local service providers (Halwais, Decorators, Mehndi Artists, Makeup Artists, DJs, Pandits, Tent Houses) through a transparent, inquiry-first workflow.
+**Shubh Ausar (शुभ अवसर)** eliminates the chaos of planning Indian celebrations. Whether organizing a **Birthday Party on 20 September**, a grand **Wedding & Reception**, a **Mundan ceremony**, or festive **Pooja rituals**, Shubh Ausar connects event hosts with verified local service providers (Halwais, Decorators, Mehndi Artists, Makeup Artists, DJs, Pandits, Tent Houses) through a transparent, inquiry-first workflow.
 
 ---
 
@@ -165,4 +165,4 @@ For the comprehensive deep dive into:
 ---
 
 ## 📄 License
-This project is proprietary and maintained for the Shubh Mangalam platform.
+This project is proprietary and maintained for the Shubh Ausar platform.

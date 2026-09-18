@@ -156,9 +156,9 @@ export class AuthService {
     // Send email verification asynchronously
     sendEmail({
       to: user.email,
-      subject: 'Verify your email - Shubh Mangalam',
-      text: `Welcome to Shubh Mangalam, ${user.name}! Please verify your email using token: ${rawVerificationToken}`,
-      html: `<p>Welcome to Shubh Mangalam, <strong>${user.name}</strong>!</p><p>Please verify your email using token: <code>${rawVerificationToken}</code></p>`,
+      subject: 'Verify your email - Shubh Ausar',
+      text: `Welcome to Shubh Ausar, ${user.name}! Please verify your email using token: ${rawVerificationToken}`,
+      html: `<p>Welcome to Shubh Ausar, <strong>${user.name}</strong>!</p><p>Please verify your email using token: <code>${rawVerificationToken}</code></p>`,
     }).catch((err) => logger.error('Failed to send verification email', err));
 
     const tokens = await this.createSessionAndTokens(user, meta);
@@ -253,7 +253,7 @@ export class AuthService {
 
     sendEmail({
       to: userWithVendor.email,
-      subject: 'Verify your partner email - Shubh Mangalam',
+      subject: 'Verify your partner email - Shubh Ausar',
       text: `Welcome Partner ${businessName}! Please verify your email using token: ${rawVerificationToken}. Your vendor account status is PENDING review.`,
       html: `<p>Welcome Partner <strong>${businessName}</strong>!</p><p>Please verify your email using token: <code>${rawVerificationToken}</code>.</p><p>Your vendor account status is currently <strong>PENDING</strong> review by our administration team.</p>`,
     }).catch((err) => logger.error('Failed to send verification email', err));
@@ -509,7 +509,7 @@ export class AuthService {
 
       sendEmail({
         to: user.email,
-        subject: 'Verify your email - Shubh Mangalam',
+        subject: 'Verify your email - Shubh Ausar',
         text: `Please verify your email using token: ${rawToken}`,
         html: `<p>Please verify your email using token: <code>${rawToken}</code></p>`,
       }).catch((err) => logger.error('Failed to resend verification email', err));
@@ -540,7 +540,7 @@ export class AuthService {
 
       sendEmail({
         to: user.email,
-        subject: 'Reset your password - Shubh Mangalam',
+        subject: 'Reset your password - Shubh Ausar',
         text: `You requested a password reset. Use token: ${rawToken} within 1 hour. If you did not request this, please ignore.`,
         html: `<p>You requested a password reset. Use token: <code>${rawToken}</code> within 1 hour.</p><p>If you did not request this, please ignore this email.</p>`,
       }).catch((err) => logger.error('Failed to send password reset email', err));
@@ -709,9 +709,9 @@ export class AuthService {
 
     await this.authRepository.upsertAdminMfa(userId, encryptedSecret);
 
-    const otpauthUrl = `otpauth://totp/ShubhMangalamAdmin:${encodeURIComponent(
+    const otpauthUrl = `otpauth://totp/ShubhAusarAdmin:${encodeURIComponent(
       user.email
-    )}?secret=${rawSecret}&issuer=ShubhMangalam`;
+    )}?secret=${rawSecret}&issuer=ShubhAusar`;
 
     return {
       secret: rawSecret,

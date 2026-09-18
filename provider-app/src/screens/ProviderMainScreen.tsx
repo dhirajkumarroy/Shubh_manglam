@@ -13,6 +13,8 @@ import { ProviderNotificationsModal } from '../components/ProviderNotificationsM
 import { ProviderHomeScreen } from './ProviderHomeScreen';
 import { CatalogDashboardScreen } from './CatalogDashboardScreen';
 import { ProviderInquiriesView } from './ProviderInquiriesView';
+import { ProviderQuotesView } from './ProviderQuotesView';
+import { ProviderBookingsView } from './ProviderBookingsView';
 import { ProviderProfileView } from './ProviderProfileView';
 import { ProviderApiService } from '../services/api';
 import { FullVendorProfile } from '../types';
@@ -46,20 +48,27 @@ export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
   const [servicesCount, setServicesCount] = useState<number>(5);
   const [packagesCount, setPackagesCount] = useState<number>(0);
   const [pendingInquiriesCount, setPendingInquiriesCount] = useState<number>(1);
+  const [quotesCount, setQuotesCount] = useState<number>(0);
+  const [bookingsCount, setBookingsCount] = useState<number>(0);
 
   const loadProfileAndStats = async () => {
     try {
-      const [vendorProfile, servicesRes, packagesRes, inqRes] = await Promise.all([
-        ProviderApiService.getVendorProfile(),
+      const [vendorProfile, servicesRes, packagesRes, inqRes, quotesRes, bookingsRes] = await Promise.all([
+        ProviderApiService.getVendorProfile().catch(() => null),
         ProviderApiService.getVendorServices().catch(() => ({ services: [] })),
         ProviderApiService.getVendorPackages().catch(() => ({ packages: [] })),
         ProviderApiService.getVendorInquiries().catch(() => []),
+        ProviderApiService.getVendorQuotes().catch(() => ({ quotes: [], total: 0 })),
+        ProviderApiService.getVendorBookings().catch(() => ({ bookings: [], total: 0 })),
       ]);
-      setProfile(vendorProfile);
+      if (vendorProfile) setProfile(vendorProfile);
       setServicesCount(servicesRes.services?.length || 5);
       setPackagesCount(packagesRes.packages?.length || 0);
-      const pending = Array.isArray(inqRes) ? inqRes.filter((i: any) => i.status === 'PENDING').length : 0;
-      setPendingInquiriesCount(pending);
+      const pendingInq = Array.isArray(inqRes) ? inqRes.filter((i: any) => i.status === 'PENDING').length : 0;
+      const pendingQuotes = (quotesRes.quotes || []).filter((q: any) => q.status === 'REQUESTED' || q.status === 'REVISION_REQUESTED').length;
+      setPendingInquiriesCount(pendingInq + pendingQuotes);
+      setQuotesCount(quotesRes.total || (quotesRes.quotes || []).length);
+      setBookingsCount(bookingsRes.total || (bookingsRes.bookings || []).length);
     } catch {
       // Keep existing defaults
     }
@@ -76,6 +85,7 @@ export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
       {/* 1. Top Tool Bar */}
       <ProviderTopBar
         businessName={profile?.businessName || 'Royal Celebrations & Decor'}
+        ownerName={profile?.user?.name}
         unreadNotificationsCount={pendingInquiriesCount}
         onOpenMenu={() => setSideMenuVisible(true)}
         onOpenNotifications={() => setNotificationsVisible(true)}
@@ -91,8 +101,19 @@ export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
             hideTopHeader={true}
             onNavigateToOnboarding={onNavigateToOnboarding}
             onNavigateToCatalog={() => setActiveTab('SERVICES')}
+            onNavigateToPackages={() => setActiveTab('PACKAGES')}
+            onNavigateToLeads={() => setActiveTab('INQUIRIES')}
+            onNavigateToBookings={() => setActiveTab('BOOKINGS')}
             onLogout={onLogout}
           />
+        )}
+
+        {activeTab === 'QUOTES' && (
+          <ProviderQuotesView />
+        )}
+
+        {activeTab === 'BOOKINGS' && (
+          <ProviderBookingsView />
         )}
 
         {activeTab === 'SERVICES' && (
@@ -137,6 +158,8 @@ export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
         activeTab={activeTab}
         onTabPress={(tab) => setActiveTab(tab)}
         servicesCount={servicesCount}
+        bookingsCount={bookingsCount}
+        quotesCount={quotesCount}
         inquiriesCount={pendingInquiriesCount}
       />
 

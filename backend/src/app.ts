@@ -113,9 +113,9 @@ const swaggerOptions: swaggerJSDoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Shubh Mangalam API Documentation',
+      title: 'Shubh Ausar (शुभ अवसर) API Documentation',
       version: '1.0.0',
-      description: 'REST API for the Shubh Mangalam Celebration & Event Services Marketplace',
+      description: 'REST API for the Shubh Ausar Celebration & Event Services Marketplace',
     },
     servers: [
       {

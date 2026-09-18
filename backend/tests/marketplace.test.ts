@@ -11,7 +11,7 @@ import { ForbiddenError, NotFoundError } from '../src/common/utils/app-error';
 
 async function runMarketplaceTests() {
   console.log('===================================================');
-  console.log('🚀 Running Shubh Mangalam Phase 6 Marketplace Tests');
+  console.log('🚀 Running Shubh Ausar Phase 6 Marketplace Tests');
   console.log('===================================================');
 
   const eventService = new EventService();
