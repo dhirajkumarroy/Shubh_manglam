@@ -22,6 +22,7 @@ import addressRouter from '../modules/addresses/address.routes';
 import marketplaceRouter from '../modules/marketplace/marketplace.routes';
 import bookingRouter from '../modules/bookings/booking.routes';
 import quoteRouter from '../modules/quotes/quote.routes';
+import reviewRouter from '../modules/reviews/review.routes';
 
 const router = Router();
 
@@ -69,10 +70,13 @@ router.use('/addresses', addressRouter);
 router.use('/marketplace', marketplaceRouter);
 router.use('/vendor', vendorRouter);
 router.use('/vendor', vendorCatalogRouter);
+router.use('/vendors', vendorRouter);
+router.use('/vendors', vendorCatalogRouter);
 router.use('/services', publicServicesRouter);
 router.use('/packages', publicPackagesRouter);
 router.use('/bookings', bookingRouter);
 router.use('/quotes', quoteRouter);
+router.use('/reviews', reviewRouter);
 router.use('/uploads', uploadRouter);
 
 export default router;

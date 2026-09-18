@@ -15,6 +15,7 @@ import EventTypesPage from './pages/EventTypesPage';
 import UsersPage from './pages/UsersPage';
 import QuotesPage from './pages/QuotesPage';
 import BookingsPage from './pages/BookingsPage';
+import DocumentRequirementsPage from './pages/DocumentRequirementsPage';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ export default function App() {
                 <Route path="users" element={<UsersPage />} />
                 <Route path="providers" element={<VendorListPage />} />
                 <Route path="providers/:id" element={<VendorDetailsPage />} />
+                <Route path="document-requirements" element={<DocumentRequirementsPage />} />
                 <Route path="event-types" element={<EventTypesPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="services" element={<ServicesPage />} />

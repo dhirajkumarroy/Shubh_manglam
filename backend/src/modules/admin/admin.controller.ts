@@ -16,6 +16,7 @@ import {
 } from '../categories/category.validation';
 import { ResponseDto } from '../../common/dto/api-response.dto';
 import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
+import { adminImportService } from './admin-import.service';
 
 export class AdminController {
   private adminService: AdminService;
@@ -223,6 +224,77 @@ export class AdminController {
       const adminId = this.getAdminId(req);
       const result = await this.adminService.removeCategory(id, adminId);
       res.status(200).json(ResponseDto.success(result.message, result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // =========================================================================
+  // Document Requirement Governance Controllers
+  // =========================================================================
+
+  listDocumentRequirements = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const requirements = await documentRequirementService.adminListRequirements();
+      res.status(200).json(ResponseDto.success('Document requirements retrieved successfully.', requirements));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const requirement = await documentRequirementService.createRequirement(req.body);
+      res.status(201).json(ResponseDto.success('Document requirement created successfully.', requirement));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const updated = await documentRequirementService.updateRequirement(id, req.body);
+      res.status(200).json(ResponseDto.success('Document requirement updated successfully.', updated));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  toggleDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const updated = await documentRequirementService.toggleActive(id);
+      res.status(200).json(ResponseDto.success('Document requirement status updated.', updated));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const result = await documentRequirementService.deleteRequirement(id);
+      res.status(200).json(ResponseDto.success(result.message, result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Bulk smart import for categories, subcategories, and celebrations
+   */
+  bulkSmartImport = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const adminId = this.getAdminId(req);
+      const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+      const result = await adminImportService.executeSmartImport(req.body, adminId, ipAddress);
+      res.status(200).json(ResponseDto.success('Smart Excel import completed successfully.', result));
     } catch (error) {
       next(error);
     }

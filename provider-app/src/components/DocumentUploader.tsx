@@ -1,363 +1,625 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Platform,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import colors from '../theme/colors';
-import { VendorDocumentItem } from '../types';
-
-const DOCUMENT_TYPES = [
-  { label: 'Identity Proof (Aadhaar / Voter ID)', value: 'IDENTITY_PROOF' },
-  { label: 'Business Registration / GST', value: 'BUSINESS_REGISTRATION' },
-  { label: 'Address Proof (Electricity / Rent)', value: 'ADDRESS_PROOF' },
-  { label: 'Tax Document (PAN Card)', value: 'TAX_DOCUMENT' },
-  { label: 'Trade Certificate / FSSAI', value: 'CERTIFICATE' },
-  { label: 'Other Verification Document', value: 'OTHER' },
-] as const;
+import { DocumentRequirementItem, VendorDocumentItem } from '../types';
+import { ProviderApiService } from '../services/api';
 
 interface DocumentUploaderProps {
+  requirements?: DocumentRequirementItem[];
   documents: VendorDocumentItem[];
-  onAddDocument: (doc: { documentType: string; documentUrl: string }) => Promise<void>;
+  onAddDocument: (doc: {
+    requirementId?: string;
+    documentType?: string;
+    documentUrl: string;
+    originalFileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }) => Promise<void>;
   onDeleteDocument: (documentId: string) => Promise<void>;
   isUploading?: boolean;
 }
 
 export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
-  documents,
+  requirements = [],
+  documents = [],
   onAddDocument,
   onDeleteDocument,
   isUploading = false,
 }) => {
-  const [selectedType, setSelectedType] = useState<string>('IDENTITY_PROOF');
-  const [documentUrl, setDocumentUrl] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string>('');
+  const [activeUploadingReqId, setActiveUploadingReqId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleAdd = async () => {
-    if (!documentUrl.trim()) {
-      setErrorMsg('Please enter document URL or path');
-      return;
-    }
-    setErrorMsg('');
+  // Match documents to requirements
+  const getDocumentForRequirement = (req: DocumentRequirementItem) => {
+    return (
+      documents.find((d) => d.requirementId === req.id) ||
+      documents.find((d) => d.documentType === req.documentType)
+    );
+  };
+
+  // Additional documents not bound to any listed requirement
+  const unlinkedDocuments = documents.filter(
+    (doc) =>
+      !requirements.some(
+        (r) => r.id === doc.requirementId || r.documentType === doc.documentType
+      )
+  );
+
+  const handlePickAndUpload = async (req: DocumentRequirementItem) => {
+    Alert.alert(
+      `Upload ${req.name}`,
+      `Choose how you want to upload your document (Max ${req.maxFileSizeMb}MB):`,
+      [
+        {
+          text: 'Choose from Photo Library',
+          onPress: () => pickImage(req, 'library'),
+        },
+        {
+          text: 'Take Photo with Camera',
+          onPress: () => pickImage(req, 'camera'),
+        },
+        {
+          text: 'Select PDF Document',
+          onPress: () => pickDocument(req),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const pickImage = async (req: DocumentRequirementItem, mode: 'library' | 'camera') => {
     try {
-      await onAddDocument({
-        documentType: selectedType,
-        documentUrl: documentUrl.trim(),
+      if (mode === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Camera permission is required to capture documents.');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Photo library permission is required to pick documents.');
+          return;
+        }
+      }
+
+      const pickerOptions: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.85,
+      };
+
+      const result =
+        mode === 'camera'
+          ? await ImagePicker.launchCameraAsync(pickerOptions)
+          : await ImagePicker.launchImageLibraryAsync(pickerOptions);
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const fileName = asset.fileName || `${req.code.toLowerCase()}_${Date.now()}.jpg`;
+      const mimeType = asset.mimeType || (fileName.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+      const fileSize = asset.fileSize || 0;
+
+      // Check file size if available (maxFileSizeMb)
+      if (fileSize > req.maxFileSizeMb * 1024 * 1024) {
+        Alert.alert(
+          'File Too Large',
+          `The selected file exceeds the maximum limit of ${req.maxFileSizeMb}MB. Please select a smaller file.`
+        );
+        return;
+      }
+
+      await uploadAndSave(req, {
+        uri: asset.uri,
+        name: fileName,
+        type: mimeType,
+        size: fileSize,
       });
-      setDocumentUrl('');
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to submit document');
+      Alert.alert('Upload Error', err.message || 'Failed to select image');
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
+  const pickDocument = async (req: DocumentRequirementItem) => {
     try {
-      await onDeleteDocument(id);
-    } catch {
-      // Ignored
-    } finally {
-      setDeletingId(null);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const fileName = asset.name || `${req.code.toLowerCase()}_${Date.now()}.pdf`;
+      const mimeType = asset.mimeType || 'application/pdf';
+      const fileSize = asset.size || 0;
+
+      if (fileSize > req.maxFileSizeMb * 1024 * 1024) {
+        Alert.alert(
+          'File Too Large',
+          `The selected file exceeds the maximum limit of ${req.maxFileSizeMb}MB.`
+        );
+        return;
+      }
+
+      await uploadAndSave(req, {
+        uri: asset.uri,
+        name: fileName,
+        type: mimeType,
+        size: fileSize,
+      });
+    } catch (err: any) {
+      Alert.alert('Document Picker Error', err.message || 'Failed to select document');
     }
+  };
+
+  const uploadAndSave = async (
+    req: DocumentRequirementItem,
+    file: { uri: string; name: string; type: string; size: number }
+  ) => {
+    setActiveUploadingReqId(req.id);
+    try {
+      // 1. Upload to storage endpoint
+      const uploadRes = await ProviderApiService.uploadDocumentFile({
+        uri: file.uri,
+        name: file.name,
+        type: file.type,
+      });
+
+      // 2. Attach document record to vendor profile
+      await onAddDocument({
+        requirementId: req.id,
+        documentType: req.documentType,
+        documentUrl: uploadRes.url,
+        originalFileName: uploadRes.originalName || file.name,
+        fileSize: uploadRes.size || file.size,
+        mimeType: uploadRes.mimeType || file.type,
+      });
+
+      Alert.alert('Document Attached', `${req.name} has been successfully uploaded.`);
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message || 'Could not upload document');
+    } finally {
+      setActiveUploadingReqId(null);
+    }
+  };
+
+  const handleDelete = async (docId: string, docName: string) => {
+    Alert.alert('Delete Document', `Are you sure you want to remove ${docName}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingId(docId);
+          try {
+            await onDeleteDocument(docId);
+          } catch (err: any) {
+            Alert.alert('Delete Failed', err.message || 'Could not remove document');
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      },
+    ]);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Business & Identity Verification Documents</Text>
+      <Text style={styles.label}>Partner Verification Documents</Text>
       <Text style={styles.helperText}>
-        Upload government or municipal documents to achieve "Verified Partner" status.
+        Upload clear, government or municipal documents to achieve "Verified Partner" status and receive bookings.
       </Text>
 
-      {/* Submitted Documents List */}
-      {documents.length > 0 && (
-        <View style={styles.docList}>
-          {documents.map((doc) => {
-            const isApproved = doc.status === 'APPROVED';
-            const isRejected = doc.status === 'REJECTED';
-            return (
-              <View
-                key={doc.id}
-                style={[
-                  styles.docCard,
-                  isApproved && styles.docCardApproved,
-                  isRejected && styles.docCardRejected,
-                ]}
-              >
-                <View style={styles.docInfo}>
-                  <Text style={styles.docTypeTitle}>
-                    {doc.documentType.replace('_', ' ')}
-                  </Text>
-                  <Text style={styles.docUrlText} numberOfLines={1}>
-                    {doc.documentUrl}
-                  </Text>
-                  {isRejected && doc.rejectionReason && (
-                    <View style={styles.rejectionReasonBox}>
-                      <Text style={styles.rejectionReasonLabel}>Admin Note:</Text>
-                      <Text style={styles.rejectionReasonText}>
-                        {doc.rejectionReason}
-                      </Text>
-                    </View>
-                  )}
+      {/* Dynamic Requirements List */}
+      <View style={styles.reqList}>
+        {requirements.map((req) => {
+          const doc = getDocumentForRequirement(req);
+          const isUploaded = !!doc;
+          const isApproved = doc?.status === 'APPROVED';
+          const isRejected = doc?.status === 'REJECTED';
+          const isPending = doc?.status === 'PENDING';
+          const isCurrentUploading = activeUploadingReqId === req.id;
+
+          return (
+            <View
+              key={req.id}
+              style={[
+                styles.card,
+                isApproved && styles.cardApproved,
+                isRejected && styles.cardRejected,
+                isPending && styles.cardPending,
+              ]}
+            >
+              {/* Header */}
+              <View style={styles.cardHeader}>
+                <View style={styles.headerTitleWrap}>
+                  <Text style={styles.reqName}>{req.name}</Text>
+                  <View style={styles.badgeRow}>
+                    {req.isRequired ? (
+                      <View style={styles.requiredBadge}>
+                        <Text style={styles.requiredBadgeText}>REQUIRED</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.optionalBadge}>
+                        <Text style={styles.optionalBadgeText}>OPTIONAL</Text>
+                      </View>
+                    )}
+                    <Text style={styles.fileLimitText}>Max {req.maxFileSizeMb}MB • PDF/Images</Text>
+                  </View>
                 </View>
 
-                <View style={styles.docActions}>
+                {/* Status Indicator */}
+                {isUploaded && (
                   <View
                     style={[
-                      styles.statusBadge,
-                      isApproved && styles.statusBadgeApproved,
-                      isRejected && styles.statusBadgeRejected,
+                      styles.statusPill,
+                      isApproved && styles.statusPillApproved,
+                      isRejected && styles.statusPillRejected,
+                      isPending && styles.statusPillPending,
                     ]}
                   >
                     <Text
                       style={[
-                        styles.statusBadgeText,
-                        isApproved && styles.statusBadgeTextApproved,
-                        isRejected && styles.statusBadgeTextRejected,
+                        styles.statusPillText,
+                        isApproved && styles.statusPillTextApproved,
+                        isRejected && styles.statusPillTextRejected,
+                        isPending && styles.statusPillTextPending,
                       ]}
                     >
-                      {doc.status}
+                      {isApproved ? '✓ VERIFIED' : isRejected ? '✕ REJECTED' : '● UNDER REVIEW'}
                     </Text>
                   </View>
-
-                  <TouchableOpacity
-                    onPress={() => handleDelete(doc.id)}
-                    disabled={deletingId === doc.id}
-                    style={styles.deleteBtn}
-                  >
-                    {deletingId === doc.id ? (
-                      <ActivityIndicator size="small" color="#DC2626" />
-                    ) : (
-                      <Text style={styles.deleteBtnText}>✕ Remove</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                )}
               </View>
-            );
-          })}
-        </View>
-      )}
 
-      {/* Add Document Section */}
-      <View style={styles.uploadForm}>
-        <Text style={styles.subLabel}>Upload or Register Document</Text>
+              {/* Requirement Description */}
+              {req.description && <Text style={styles.reqDesc}>{req.description}</Text>}
 
-        {/* Type Selector Pills */}
-        <View style={styles.typePillRow}>
-          {DOCUMENT_TYPES.map((dt) => (
-            <TouchableOpacity
-              key={dt.value}
-              onPress={() => setSelectedType(dt.value)}
-              style={[
-                styles.typePill,
-                selectedType === dt.value && styles.typePillActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.typePillText,
-                  selectedType === dt.value && styles.typePillTextActive,
-                ]}
+              {/* Rejection Alert */}
+              {isRejected && doc?.rejectionReason && (
+                <View style={styles.rejectionBox}>
+                  <Text style={styles.rejectionTitle}>Admin Feedback:</Text>
+                  <Text style={styles.rejectionBody}>{doc.rejectionReason}</Text>
+                </View>
+              )}
+
+              {/* Document Info / Action Row */}
+              {isUploaded ? (
+                <View style={styles.uploadedRow}>
+                  <View style={styles.fileMeta}>
+                    <Text style={styles.fileName} numberOfLines={1}>
+                      📄 {doc.originalFileName || doc.documentUrl.split('/').pop() || 'Document'}
+                    </Text>
+                    {doc.fileSize ? (
+                      <Text style={styles.fileSize}>
+                        {(doc.fileSize / (1024 * 1024)).toFixed(2)} MB
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.btnGroup}>
+                    <TouchableOpacity
+                      onPress={() => handlePickAndUpload(req)}
+                      disabled={isCurrentUploading}
+                      style={styles.replaceBtn}
+                    >
+                      {isCurrentUploading ? (
+                        <ActivityIndicator size="small" color="#D97706" />
+                      ) : (
+                        <Text style={styles.replaceBtnText}>Replace</Text>
+                      )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => handleDelete(doc.id, req.name)}
+                      disabled={deletingId === doc.id}
+                      style={styles.deleteBtn}
+                    >
+                      {deletingId === doc.id ? (
+                        <ActivityIndicator size="small" color="#EF4444" />
+                      ) : (
+                        <Text style={styles.deleteBtnText}>Remove</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.uploadBtn, isCurrentUploading && styles.btnDisabled]}
+                  onPress={() => handlePickAndUpload(req)}
+                  disabled={isCurrentUploading || isUploading}
+                >
+                  {isCurrentUploading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.uploadBtnText}>+ Upload {req.name}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Unlinked / Additional Documents */}
+      {unlinkedDocuments.length > 0 && (
+        <View style={styles.extraSection}>
+          <Text style={styles.extraTitle}>Additional Uploaded Documents</Text>
+          {unlinkedDocuments.map((doc) => (
+            <View key={doc.id} style={styles.extraCard}>
+              <View style={styles.fileMeta}>
+                <Text style={styles.fileName} numberOfLines={1}>
+                  📄 {doc.originalFileName || doc.documentType.replace('_', ' ')}
+                </Text>
+                <Text style={styles.fileSize}>{doc.status}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleDelete(doc.id, doc.originalFileName || 'Document')}
+                style={styles.deleteBtn}
               >
-                {dt.label.split('(')[0].trim()}
-              </Text>
-            </TouchableOpacity>
+                <Text style={styles.deleteBtnText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
-
-        {/* URL Input */}
-        <TextInput
-          style={styles.input}
-          placeholder="Document file URL or path (e.g. /uploads/documents/id.pdf)"
-          placeholderTextColor={colors.placeholder}
-          value={documentUrl}
-          onChangeText={setDocumentUrl}
-          autoCapitalize="none"
-        />
-
-        {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
-
-        <TouchableOpacity
-          style={[styles.submitDocBtn, isUploading && styles.btnDisabled]}
-          onPress={handleAdd}
-          disabled={isUploading}
-        >
-          {isUploading ? (
-            <ActivityIndicator color={colors.white} size="small" />
-          ) : (
-            <Text style={styles.submitDocBtnText}>+ Attach Document</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 12,
+    marginVertical: 10,
   },
   label: {
     fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
+    fontWeight: '800',
+    color: '#1C1917',
     marginBottom: 4,
   },
   helperText: {
     fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 12,
+    color: '#78716C',
+    marginBottom: 14,
     lineHeight: 16,
   },
-  docList: {
-    marginBottom: 14,
-    gap: 8,
+  reqList: {
+    gap: 12,
   },
-  docCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E7E5E4',
+    padding: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+      default: {},
+    }),
   },
-  docCardApproved: {
+  cardApproved: {
     borderColor: '#10B981',
     backgroundColor: '#F0FDF4',
   },
-  docCardRejected: {
+  cardRejected: {
     borderColor: '#EF4444',
     backgroundColor: '#FEF2F2',
   },
-  docInfo: {
-    flex: 1,
-    marginRight: 10,
+  cardPending: {
+    borderColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
   },
-  docTypeTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  docUrlText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  rejectionReasonBox: {
-    marginTop: 6,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 6,
-    padding: 6,
-  },
-  rejectionReasonLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#B91C1C',
-  },
-  rejectionReasonText: {
-    fontSize: 11,
-    color: '#7F1D1D',
-  },
-  docActions: {
-    alignItems: 'flex-end',
+  cardHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
   },
-  statusBadge: {
-    backgroundColor: '#FEF3C7',
+  headerTitleWrap: {
+    flex: 1,
+    marginRight: 8,
+  },
+  reqName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1C1917',
+    marginBottom: 4,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  requiredBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  requiredBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#B91C1C',
+    letterSpacing: 0.5,
+  },
+  optionalBadge: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  optionalBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  fileLimitText: {
+    fontSize: 10,
+    color: '#9CA3AF',
+  },
+  statusPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  statusBadgeApproved: {
+  statusPillApproved: {
     backgroundColor: '#DCFCE7',
   },
-  statusBadgeRejected: {
+  statusPillRejected: {
     backgroundColor: '#FEE2E2',
   },
-  statusBadgeText: {
+  statusPillPending: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusPillText: {
     fontSize: 10,
+    fontWeight: '800',
+  },
+  statusPillTextApproved: {
+    color: '#15803D',
+  },
+  statusPillTextRejected: {
+    color: '#B91C1C',
+  },
+  statusPillTextPending: {
+    color: '#B45309',
+  },
+  reqDesc: {
+    fontSize: 11.5,
+    color: '#6B7280',
+    marginBottom: 10,
+    lineHeight: 15,
+  },
+  rejectionBox: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#DC2626',
+  },
+  rejectionTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 2,
+  },
+  rejectionBody: {
+    fontSize: 11,
+    color: '#7F1D1D',
+    lineHeight: 14,
+  },
+  uploadedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 4,
+  },
+  fileMeta: {
+    flex: 1,
+    marginRight: 10,
+  },
+  fileName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  fileSize: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  btnGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  replaceBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#D97706',
+  },
+  replaceBtnText: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#D97706',
   },
-  statusBadgeTextApproved: {
-    color: '#15803D',
-  },
-  statusBadgeTextRejected: {
-    color: '#B91C1C',
-  },
   deleteBtn: {
-    marginTop: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   deleteBtnText: {
     fontSize: 11,
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-  uploadForm: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  subLabel: {
-    fontSize: 12,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  typePillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-  },
-  typePill: {
-    backgroundColor: colors.background,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  typePillActive: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-  },
-  typePillText: {
-    fontSize: 11,
-    color: colors.text,
-  },
-  typePillTextActive: {
-    color: colors.white,
-    fontWeight: '700',
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 12,
-    color: colors.text,
-    marginBottom: 8,
-  },
-  errorText: {
     color: '#EF4444',
-    fontSize: 11,
-    marginBottom: 8,
   },
-  submitDocBtn: {
-    backgroundColor: colors.primary,
+  uploadBtn: {
+    backgroundColor: '#E65100', // Saffron primary
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
   },
-  submitDocBtnText: {
-    color: colors.white,
-    fontWeight: '700',
-    fontSize: 12,
+  uploadBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
   btnDisabled: {
     opacity: 0.6,
+  },
+  extraSection: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  extraTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#4B5563',
+    marginBottom: 8,
+  },
+  extraCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 6,
   },
 });
 

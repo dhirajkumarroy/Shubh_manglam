@@ -1,6 +1,7 @@
 import { AdminRepository } from './admin.repository';
 import { NotificationService } from '../notifications/notification.service';
 import { CategoryService } from '../categories/category.service';
+import { prisma } from '../../config/database';
 import {
   UserQueryDto,
   AdminVendorQueryDto,
@@ -226,7 +227,32 @@ export class AdminService {
 
     validateVendorTransition(vendor.status, VendorStatus.APPROVED);
 
-    const updated = await this.adminRepository.updateVendorStatus(vendorId, VendorStatus.APPROVED, true, true);
+    // Generate unique public Partner Account ID (format: SA-P-100001)
+    let partnerAccountId = vendor.partnerAccountId;
+    if (!partnerAccountId) {
+      const latestVendor = await prisma.vendor.findFirst({
+        where: { partnerAccountId: { not: null } },
+        orderBy: { partnerAccountId: 'desc' },
+        select: { partnerAccountId: true },
+      });
+
+      let nextSeq = 100001;
+      if (latestVendor?.partnerAccountId) {
+        const match = latestVendor.partnerAccountId.match(/SA-P-(\d+)/);
+        if (match) {
+          nextSeq = parseInt(match[1], 10) + 1;
+        }
+      }
+      partnerAccountId = `SA-P-${String(nextSeq).padStart(6, '0')}`;
+    }
+
+    const updated = await this.adminRepository.updateVendorStatus(
+      vendorId,
+      VendorStatus.APPROVED,
+      true,
+      true,
+      partnerAccountId
+    );
 
     // Audit Log
     await this.adminRepository.createAuditLog({
@@ -234,13 +260,13 @@ export class AdminService {
       action: 'VENDOR_APPROVED',
       entity: 'Vendor',
       entityId: vendorId,
-      metadata: { previousStatus: vendor.status },
+      metadata: { previousStatus: vendor.status, partnerAccountId },
     });
 
-    // Notify Vendor
+    // Notify Partner with Partner Account ID
     await this.notificationService.createNotification(vendor.userId, {
-      title: 'Congratulations! Vendor Account Approved',
-      message: 'Your Shubh Ausar vendor account has been verified and approved. You can now operate and accept bookings.',
+      title: 'Congratulations! Partner Account Approved 🪷',
+      message: `Your Shubh Ausar Partner account is approved. Your Partner Account ID is ${partnerAccountId}. You can now create services, upload your gallery, and receive bookings.`,
       type: 'VENDOR_APPROVED',
     }).catch(() => {});
 

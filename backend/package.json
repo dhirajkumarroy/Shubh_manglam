@@ -17,7 +17,8 @@
     "test:vendor": "ts-node tests/vendor.test.ts",
     "test:catalog": "ts-node tests/catalog.test.ts",
     "test:marketplace": "ts-node tests/marketplace.test.ts",
-    "test:quotes": "ts-node tests/quote_booking_flow.test.ts"
+    "test:quotes": "ts-node tests/quote_booking_flow.test.ts",
+    "test:partner": "ts-node tests/partner_onboarding_gallery.test.ts"
   },
 
   "keywords": [

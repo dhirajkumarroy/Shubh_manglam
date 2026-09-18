@@ -9,15 +9,19 @@ import {
 import colors from '../theme/colors';
 import { FullVendorProfile } from '../types';
 
+import { Alert } from 'react-native';
+
 interface ProviderProfileViewProps {
   profile: FullVendorProfile | null;
   onNavigateToOnboarding?: () => void;
+  onNavigateToGallery?: () => void;
   onLogout?: () => void;
 }
 
 export const ProviderProfileView: React.FC<ProviderProfileViewProps> = ({
   profile,
   onNavigateToOnboarding,
+  onNavigateToGallery,
   onLogout,
 }) => {
   const businessName = profile?.businessName || 'Royal Celebrations & Decor';
@@ -30,6 +34,9 @@ export const ProviderProfileView: React.FC<ProviderProfileViewProps> = ({
   const radius = profile?.operatingRadiusKm || 25;
   const isVerified = profile?.isVerified ?? true;
   const status = profile?.status || 'APPROVED';
+  const partnerAccountId = profile?.partnerAccountId;
+  const ratingAverage = profile?.ratingAverage ?? 5.0;
+  const ratingCount = profile?.ratingCount ?? 0;
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -43,6 +50,31 @@ export const ProviderProfileView: React.FC<ProviderProfileViewProps> = ({
 
         <Text style={styles.businessName}>{businessName}</Text>
         <Text style={styles.businessCategory}>Celebration & Event Partner</Text>
+
+        {/* Public Partner Account ID Box */}
+        {partnerAccountId && (
+          <TouchableOpacity
+            style={styles.partnerIdPill}
+            activeOpacity={0.8}
+            onPress={() => {
+              Alert.alert(
+                'Partner ID Copied!',
+                `ID: ${partnerAccountId}\n\nShare this ID with hosts and clients so they can find your verified profile.`
+              );
+            }}
+          >
+            <Text style={styles.partnerIdPillLabel}>Partner ID:</Text>
+            <Text style={styles.partnerIdPillValue}>{partnerAccountId}</Text>
+            <Text style={styles.copyIcon}>📋</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Rating Summary */}
+        <View style={styles.ratingRow}>
+          <Text style={styles.ratingStar}>★</Text>
+          <Text style={styles.ratingVal}>{ratingAverage.toFixed(1)}</Text>
+          <Text style={styles.ratingCount}>({ratingCount} verified reviews)</Text>
+        </View>
 
         <View style={styles.statusPillsRow}>
           <View
@@ -135,6 +167,16 @@ export const ProviderProfileView: React.FC<ProviderProfileViewProps> = ({
 
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
+        {onNavigateToGallery && (
+          <TouchableOpacity
+            style={styles.galleryBtn}
+            activeOpacity={0.8}
+            onPress={onNavigateToGallery}
+          >
+            <Text style={styles.galleryBtnText}>📸 My Partner Gallery (Photos & Videos)</Text>
+          </TouchableOpacity>
+        )}
+
         {onNavigateToOnboarding && (
           <TouchableOpacity
             style={styles.editBtn}
@@ -319,6 +361,17 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 20,
   },
+  galleryBtn: {
+    backgroundColor: '#E65100', // Saffron brand
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  galleryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
   editBtn: {
     backgroundColor: '#FAF8F5',
     borderWidth: 1,
@@ -331,6 +384,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#292524',
+  },
+  partnerIdPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 10,
+    gap: 6,
+  },
+  partnerIdPillLabel: {
+    fontSize: 11,
+    color: '#78716C',
+    fontWeight: '600',
+  },
+  partnerIdPillValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#C2410C',
+    letterSpacing: 0.5,
+  },
+  copyIcon: {
+    fontSize: 11,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 12,
+  },
+  ratingStar: {
+    color: '#F59E0B',
+    fontSize: 16,
+  },
+  ratingVal: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1C1917',
+  },
+  ratingCount: {
+    fontSize: 12,
+    color: '#78716C',
   },
   logoutBtn: {
     backgroundColor: '#FEE2E2',

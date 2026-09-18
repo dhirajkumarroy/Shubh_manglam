@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Users, 
   Store, 
+  ShieldCheck,
   Calendar, 
   Tag, 
   Layers,
@@ -21,6 +22,7 @@ const NAVIGATION_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'User Directory', path: '/users', icon: Users },
   { name: 'Service Providers', path: '/providers', icon: Store },
+  { name: 'Partner Document Rules', path: '/document-requirements', icon: ShieldCheck },
   { name: 'Celebration Types', path: '/event-types', icon: Calendar },
   { name: 'Categories', path: '/categories', icon: Tag },
   { name: 'Catalog Services', path: '/services', icon: Layers },
@@ -53,7 +55,7 @@ export const AdminLayout: React.FC = () => {
             </div>
             <div>
               <h1 className="font-extrabold text-base text-[#1C1917] tracking-tight">Shubh Ausar</h1>
-              <p className="text-xs text-primary font-medium">शुभ अवसर • Admin Console</p>
+              <p className="text-xs text-primary font-medium">Marketplace Admin Console</p>
             </div>
           </div>
         </div>

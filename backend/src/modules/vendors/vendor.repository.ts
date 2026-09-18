@@ -25,6 +25,9 @@ export class VendorRepository {
           },
         },
         documents: {
+          include: {
+            requirement: true,
+          },
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -53,6 +56,9 @@ export class VendorRepository {
           },
         },
         documents: {
+          include: {
+            requirement: true,
+          },
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -89,55 +95,69 @@ export class VendorRepository {
       where: { id },
       data: updateData,
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            avatar: true,
+          },
+        },
         categories: {
           include: {
             category: true,
           },
         },
-        documents: true,
+        documents: {
+          include: {
+            requirement: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
   }
 
   /**
-   * Atomically synchronizes vendor categories.
+   * Synchronizes vendor categories in a transaction.
    */
   async syncCategories(vendorId: string, categoryIds: string[]) {
     return prisma.$transaction(async (tx) => {
-      // 1. Delete categories not in the new categoryIds list
       await tx.vendorCategory.deleteMany({
-        where: {
-          vendorId,
-          categoryId: { notIn: categoryIds },
-        },
-      });
-
-      // 2. Query existing to avoid duplicates
-      const existing = await tx.vendorCategory.findMany({
         where: { vendorId },
-        select: { categoryId: true },
       });
-      const existingSet = new Set(existing.map((e) => e.categoryId));
 
-      // 3. Insert newly selected categories
-      const toInsert = categoryIds.filter((cid) => !existingSet.has(cid));
-      if (toInsert.length > 0) {
-        await tx.vendorCategory.createMany({
-          data: toInsert.map((categoryId) => ({
-            vendorId,
-            categoryId,
-          })),
-        });
-      }
+      await tx.vendorCategory.createMany({
+        data: categoryIds.map((categoryId) => ({
+          vendorId,
+          categoryId,
+        })),
+      });
 
-      // 4. Return updated vendor with categories
-      return tx.vendor.findUnique({
+      return tx.vendor.findUniqueOrThrow({
         where: { id: vendorId },
         include: {
-          categories: {
-            include: { category: true },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              avatar: true,
+            },
           },
-          documents: true,
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+          documents: {
+            include: {
+              requirement: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
     });
@@ -146,13 +166,30 @@ export class VendorRepository {
   /**
    * Adds a new vendor document.
    */
-  async createDocument(vendorId: string, documentType: DocumentType, documentUrl: string) {
+  async createDocument(
+    vendorId: string,
+    documentType: DocumentType,
+    documentUrl: string,
+    meta?: {
+      requirementId?: string;
+      originalFileName?: string;
+      fileSize?: number;
+      mimeType?: string;
+    }
+  ) {
     return prisma.vendorDocument.create({
       data: {
         vendorId,
         documentType,
         documentUrl,
+        requirementId: meta?.requirementId || null,
+        originalFileName: meta?.originalFileName || null,
+        fileSize: meta?.fileSize || null,
+        mimeType: meta?.mimeType || null,
         status: DocumentStatus.PENDING,
+      },
+      include: {
+        requirement: true,
       },
     });
   }

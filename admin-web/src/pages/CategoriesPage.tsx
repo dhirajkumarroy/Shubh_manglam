@@ -8,21 +8,24 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertTriangle, 
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Layers,
-  FolderPlus,
-  Folder,
-  X
+  RefreshCw, 
+  ChevronDown, 
+  ChevronRight, 
+  Layers, 
+  FolderPlus, 
+  Folder, 
+  X,
+  FileSpreadsheet
 } from 'lucide-react';
 import { adminCategoryService, CategoryItem } from '../services/category.service';
+import { SmartExcelImportModal } from '../components/SmartExcelImportModal';
 
 export const CategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [search, setSearch] = useState<string>('');
+  const [showExcelModal, setShowExcelModal] = useState<boolean>(false);
   const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
 
   // Filter: 'ALL' | 'ROOT' | 'SUBCAT'
@@ -197,6 +200,14 @@ export const CategoriesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowExcelModal(true)}
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-[#881337] to-[#C2410C] hover:from-[#6B0D2B] hover:to-[#9A3412] text-white rounded-xl text-xs font-bold transition shadow-sm"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Smart Excel Import</span>
+          </button>
+
           <button
             onClick={fetchCategories}
             className="flex items-center space-x-1.5 px-3 py-2 bg-white border border-[#E7E0D8] rounded-xl text-xs font-bold text-[#57534E] hover:bg-[#FAF8F5] transition shadow-sm"
@@ -587,6 +598,14 @@ export const CategoriesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Smart Excel Import Modal */}
+      <SmartExcelImportModal
+        isOpen={showExcelModal}
+        onClose={() => setShowExcelModal(false)}
+        onSuccess={fetchCategories}
+        defaultTab="categories"
+      />
     </div>
   );
 };

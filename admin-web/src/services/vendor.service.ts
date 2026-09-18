@@ -2,6 +2,7 @@ import apiClient from './apiClient';
 
 export interface VendorListItem {
   id: string;
+  partnerAccountId?: string | null;
   userId: string;
   businessName: string;
   slug: string;
@@ -44,8 +45,24 @@ export interface VendorListResponse {
   vendors: VendorListItem[];
 }
 
+export interface DocumentRequirement {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  documentType: string;
+  isRequired: boolean;
+  acceptedFileTypes: string[];
+  maxFileSizeMb: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface VendorDetailsResponse {
   id: string;
+  partnerAccountId?: string | null;
   userId: string;
   businessName: string;
   slug: string;
@@ -89,10 +106,14 @@ export interface VendorDetailsResponse {
     id: string;
     documentType: string;
     documentUrl: string;
+    originalFileName?: string | null;
+    fileSize?: number | null;
+    mimeType?: string | null;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     rejectionReason: string | null;
     createdAt: string;
     updatedAt: string;
+    requirement?: DocumentRequirement | null;
   }[];
   counts: {
     services: number;
@@ -184,6 +205,44 @@ class AdminVendorService {
 
   async getInquiryAnalytics(): Promise<any> {
     return this.request('/bookings/admin/analytics');
+  }
+
+  // Document Requirements Configuration
+  async listDocumentRequirements(): Promise<DocumentRequirement[]> {
+    return this.request<DocumentRequirement[]>('/admin/document-requirements');
+  }
+
+  async createDocumentRequirement(body: {
+    code: string;
+    name: string;
+    description?: string;
+    documentType: string;
+    isRequired?: boolean;
+    acceptedFileTypes?: string[];
+    maxFileSizeMb?: number;
+    sortOrder?: number;
+    isActive?: boolean;
+  }): Promise<DocumentRequirement> {
+    return this.request<DocumentRequirement>('/admin/document-requirements', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async updateDocumentRequirement(
+    id: string,
+    body: Partial<DocumentRequirement>
+  ): Promise<DocumentRequirement> {
+    return this.request<DocumentRequirement>(`/admin/document-requirements/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async deleteDocumentRequirement(id: string): Promise<any> {
+    return this.request(`/admin/document-requirements/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 

@@ -5,9 +5,10 @@ import {
   UpdateVendorProfileDto,
   ProfileCompletenessResult,
   VendorProfileResponse,
+  CreateVendorDocumentDto,
 } from './vendor.types';
 import { validateVendorTransition } from './vendor.constants';
-import { VendorStatus, DocumentType } from '@prisma/client';
+import { VendorStatus, DocumentType, DocumentStatus } from '@prisma/client';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../common/utils/app-error';
 import logger from '../../config/logger';
 
@@ -115,6 +116,7 @@ export class VendorService {
     return {
       id: vendor.id,
       userId: vendor.userId,
+      partnerAccountId: vendor.partnerAccountId || null,
       businessName: vendor.businessName,
       slug: vendor.slug,
       description: vendor.description,
@@ -148,11 +150,21 @@ export class VendorService {
       })),
       documents: (vendor.documents || []).map((doc: any) => ({
         id: doc.id,
+        requirementId: doc.requirementId || null,
         documentType: doc.documentType,
         documentUrl: doc.documentUrl,
+        originalFileName: doc.originalFileName || null,
+        fileSize: doc.fileSize || null,
+        mimeType: doc.mimeType || null,
         status: doc.status,
         rejectionReason: doc.rejectionReason,
         createdAt: doc.createdAt,
+        requirement: doc.requirement ? {
+          id: doc.requirement.id,
+          code: doc.requirement.code,
+          name: doc.requirement.name,
+          isRequired: doc.requirement.isRequired,
+        } : null,
       })),
       completeness,
       user: vendor.user
@@ -224,14 +236,32 @@ export class VendorService {
   /**
    * Adds a verification document for the authenticated vendor.
    */
-  async addDocument(userId: string, documentType: DocumentType, documentUrl: string) {
+  async addDocument(userId: string, data: CreateVendorDocumentDto) {
     const vendor = await this.vendorRepo.findByUserId(userId);
     if (!vendor) {
       throw new NotFoundError('Vendor profile not found for this user.');
     }
 
-    const document = await this.vendorRepo.createDocument(vendor.id, documentType, documentUrl);
-    logger.info(`VendorService: Uploaded document ${document.id} (${documentType}) for vendor ${vendor.id}`);
+    let docType = data.documentType || DocumentType.OTHER;
+    if (data.requirementId) {
+      const req = await prisma.documentRequirement.findUnique({ where: { id: data.requirementId } });
+      if (req) {
+        docType = req.documentType;
+      }
+    }
+
+    const document = await this.vendorRepo.createDocument(
+      vendor.id,
+      docType,
+      data.documentUrl,
+      {
+        requirementId: data.requirementId,
+        originalFileName: data.originalFileName,
+        fileSize: data.fileSize,
+        mimeType: data.mimeType,
+      }
+    );
+    logger.info(`VendorService: Uploaded document ${document.id} (${docType}) for vendor ${vendor.id}`);
 
     return document;
   }
@@ -277,6 +307,27 @@ export class VendorService {
       throw new BadRequestError(
         `Cannot submit for review: Profile is incomplete (${completeness.completionPercentage}%). Missing: ${completeness.missingFields.join(', ')}`
       );
+    }
+
+    // Backend validation of dynamic required documents
+    const requiredDocs = await prisma.documentRequirement.findMany({
+      where: { isActive: true, isRequired: true },
+    });
+
+    if (requiredDocs.length > 0) {
+      const vendorDocs = vendor.documents || [];
+      const missingRequired = requiredDocs.filter((req) => {
+        return !vendorDocs.some((doc: any) => 
+          (doc.requirementId === req.id || doc.documentType === req.documentType) && 
+          doc.status !== DocumentStatus.REJECTED
+        );
+      });
+
+      if (missingRequired.length > 0) {
+        throw new BadRequestError(
+          `Cannot submit for review: Please upload all required documents: ${missingRequired.map((r) => r.name).join(', ')}`
+        );
+      }
     }
 
     const updated = await this.vendorRepo.updateStatus(vendor.id, VendorStatus.UNDER_REVIEW);

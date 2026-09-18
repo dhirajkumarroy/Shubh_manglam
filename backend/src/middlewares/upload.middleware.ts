@@ -114,4 +114,52 @@ export const uploadImage = (req: Request, res: Response, next: NextFunction) => 
   });
 };
 
+/**
+ * Custom gallery media filter checking MIME types (images + videos)
+ */
+const galleryFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+  const allowedMimeTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'video/x-matroska',
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestError('Invalid file type. Only JPEG, PNG, WebP images and MP4, WebM, MOV videos are allowed for gallery.'));
+  }
+};
+
+/**
+ * Express middleware to handle gallery media upload (up to 50MB).
+ */
+export const uploadGalleryMedia = (req: Request, res: Response, next: NextFunction) => {
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50 MB
+    },
+    fileFilter: galleryFilter,
+  }).single('file');
+
+  upload(req, res, (err: any) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return next(new BadRequestError('Media file is too large. Maximum size allowed is 50 MB.'));
+        }
+        return next(new BadRequestError(`Media upload error: ${err.message}`));
+      }
+      return next(err);
+    }
+    next();
+  });
+};
+
+
 

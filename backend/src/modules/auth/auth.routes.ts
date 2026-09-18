@@ -46,6 +46,8 @@ router.post('/email/resend-verification', authLimiter, controller.resendVerifica
 // =========================================================================
 // 6. Password Management
 // =========================================================================
+router.get('/password/reset-page', controller.renderResetPasswordPage);
+router.get('/reset-password', controller.renderResetPasswordPage);
 router.post('/password/forgot', authLimiter, controller.forgotPassword);
 router.post('/forgot-password', authLimiter, controller.forgotPassword); // backward compatibility
 router.post('/password/reset', authLimiter, controller.resetPassword);

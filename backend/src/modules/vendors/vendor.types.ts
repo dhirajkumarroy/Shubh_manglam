@@ -28,6 +28,10 @@ export interface SyncVendorCategoriesDto {
 export interface CreateVendorDocumentDto {
   documentType: DocumentType;
   documentUrl: string;
+  requirementId?: string;
+  originalFileName?: string;
+  fileSize?: number;
+  mimeType?: string;
 }
 
 export interface ProfileCompletenessResult {
@@ -39,6 +43,7 @@ export interface ProfileCompletenessResult {
 export interface VendorProfileResponse {
   id: string;
   userId: string;
+  partnerAccountId: string | null;
   businessName: string;
   slug: string;
   description: string | null;
@@ -72,11 +77,21 @@ export interface VendorProfileResponse {
   }[];
   documents: {
     id: string;
+    requirementId?: string | null;
     documentType: DocumentType;
     documentUrl: string;
+    originalFileName?: string | null;
+    fileSize?: number | null;
+    mimeType?: string | null;
     status: DocumentStatus;
     rejectionReason: string | null;
     createdAt: Date;
+    requirement?: {
+      id: string;
+      code: string;
+      name: string;
+      isRequired: boolean;
+    } | null;
   }[];
   completeness: ProfileCompletenessResult;
   user?: {

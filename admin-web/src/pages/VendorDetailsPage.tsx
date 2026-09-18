@@ -246,6 +246,11 @@ export const VendorDetailsPage: React.FC = () => {
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF3C7] text-primary border border-amber-300">
                   {vendor.status}
                 </span>
+                {vendor.partnerAccountId && (
+                  <span className="px-2.5 py-0.5 rounded-lg text-xs font-black bg-orange-50 text-orange-800 border border-orange-200">
+                    Partner ID: {vendor.partnerAccountId}
+                  </span>
+                )}
                 {vendor.isVerified && (
                   <span className="inline-flex items-center text-xs font-bold text-emerald-700">
                     <ShieldCheck className="w-4 h-4 mr-1" /> Verified Partner
@@ -253,7 +258,7 @@ export const VendorDetailsPage: React.FC = () => {
                 )}
               </div>
               <p className="text-xs text-[#78716C] mt-1">
-                Registered on {new Date(vendor.createdAt).toLocaleDateString()} • ID: {vendor.id}
+                Registered on {new Date(vendor.createdAt).toLocaleDateString()} • DB ID: {vendor.id}
               </p>
             </div>
           </div>
@@ -360,76 +365,104 @@ export const VendorDetailsPage: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 border border-[#E7E0D8] shadow-sm space-y-4">
         <h3 className="font-bold text-sm text-[#1C1917] flex items-center space-x-2">
           <FileText className="w-4 h-4 text-primary" />
-          <span>Submitted Verification Documents</span>
+          <span>Submitted Verification Documents ({vendor.documents.length})</span>
         </h3>
 
         {vendor.documents.length === 0 ? (
           <p className="text-xs text-[#A8A29E]">No verification documents uploaded yet.</p>
         ) : (
           <div className="space-y-3">
-            {vendor.documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="p-4 rounded-xl border border-[#E7E0D8] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <p className="font-bold text-xs text-[#1C1917]">
-                      {doc.documentType.replace('_', ' ')}
-                    </p>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        doc.status === 'APPROVED'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : doc.status === 'REJECTED'
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {doc.status}
-                    </span>
-                  </div>
-                  <a
-                    href={doc.documentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center space-x-1 text-xs text-primary font-semibold hover:underline mt-1"
-                  >
-                    <span>Inspect File: {doc.documentUrl}</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                  {doc.rejectionReason && (
-                    <p className="text-xs text-rose-700 mt-1 font-medium">
-                      Rejection Reason: {doc.rejectionReason}
-                    </p>
-                  )}
-                </div>
+            {vendor.documents.map((doc) => {
+              const displayName = doc.requirement?.name || doc.documentType.replace(/_/g, ' ');
+              const sizeFormatted = doc.fileSize
+                ? doc.fileSize >= 1024 * 1024
+                  ? `${(doc.fileSize / (1024 * 1024)).toFixed(2)} MB`
+                  : `${Math.round(doc.fileSize / 1024)} KB`
+                : null;
 
-                <div className="flex items-center space-x-2">
-                  {doc.status !== 'APPROVED' && (
-                    <button
-                      onClick={() => handleApproveDocument(doc.id)}
-                      disabled={actionLoading}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition"
-                    >
-                      Approve Doc
-                    </button>
-                  )}
-                  {doc.status !== 'REJECTED' && (
-                    <button
-                      onClick={() => {
-                        setSelectedDocId(doc.id);
-                        setShowDocRejectModal(true);
-                      }}
-                      disabled={actionLoading}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition"
-                    >
-                      Reject Doc
-                    </button>
-                  )}
+              return (
+                <div
+                  key={doc.id}
+                  className="p-4 rounded-xl border border-[#E7E0D8] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-bold text-sm text-[#1C1917]">
+                        {displayName}
+                      </p>
+                      {doc.requirement?.isRequired && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                          REQUIRED
+                        </span>
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          doc.status === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : doc.status === 'REJECTED'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {doc.status}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-[#78716C]">
+                      {doc.originalFileName && (
+                        <span className="truncate max-w-xs font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-[#E7E0D8]">
+                          📄 {doc.originalFileName}
+                        </span>
+                      )}
+                      {sizeFormatted && <span>Size: {sizeFormatted}</span>}
+                      {doc.mimeType && <span>Type: {doc.mimeType}</span>}
+                    </div>
+
+                    <div>
+                      <a
+                        href={doc.documentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center space-x-1 text-xs text-primary font-semibold hover:underline"
+                      >
+                        <span>Inspect Document</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+
+                    {doc.rejectionReason && (
+                      <p className="text-xs text-rose-700 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200">
+                        <strong>Rejection Reason:</strong> {doc.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    {doc.status !== 'APPROVED' && (
+                      <button
+                        onClick={() => handleApproveDocument(doc.id)}
+                        disabled={actionLoading}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition"
+                      >
+                        Approve Doc
+                      </button>
+                    )}
+                    {doc.status !== 'REJECTED' && (
+                      <button
+                        onClick={() => {
+                          setSelectedDocId(doc.id);
+                          setShowDocRejectModal(true);
+                        }}
+                        disabled={actionLoading}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition"
+                      >
+                        Reject Doc
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

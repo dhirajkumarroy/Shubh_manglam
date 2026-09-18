@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { ProviderApiService } from '../services/api';
-import { FullVendorProfile, ServiceCategory } from '../types';
+import { DocumentRequirementItem, FullVendorProfile, ServiceCategory } from '../types';
 import CategorySelector from '../components/CategorySelector';
 import DocumentUploader from '../components/DocumentUploader';
 import ProfileCompletionCard from '../components/ProfileCompletionCard';
@@ -30,11 +30,13 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
 }) => {
   const [profile, setProfile] = useState<FullVendorProfile | null>(null);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [requirements, setRequirements] = useState<DocumentRequirementItem[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
   const [savingCategories, setSavingCategories] = useState<boolean>(false);
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+  const [activeStep, setActiveStep] = useState<number>(1);
 
   // Form Fields State
   const [businessName, setBusinessName] = useState<string>('');
@@ -53,13 +55,15 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [vendorData, catData] = await Promise.all([
+      const [vendorData, catData, reqData] = await Promise.all([
         ProviderApiService.getVendorProfile(),
         ProviderApiService.getCategories(),
+        ProviderApiService.getDocumentRequirements().catch(() => [] as DocumentRequirementItem[]),
       ]);
 
       setProfile(vendorData);
       setCategories(catData || []);
+      setRequirements(reqData || []);
 
       // Pre-fill form fields
       setBusinessName(vendorData.businessName || '');
@@ -110,7 +114,7 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
 
       const updated = await ProviderApiService.updateVendorProfile(payload);
       setProfile(updated);
-      Alert.alert('Success', 'Vendor profile details saved successfully.');
+      Alert.alert('Success', 'Partner profile details saved successfully.');
     } catch (err: any) {
       Alert.alert('Save Failed', err.message || 'Could not update profile');
     } finally {
@@ -138,7 +142,14 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
     }
   };
 
-  const handleAddDocument = async (doc: { documentType: string; documentUrl: string }) => {
+  const handleAddDocument = async (doc: {
+    requirementId?: string;
+    documentType?: string;
+    documentUrl: string;
+    originalFileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }) => {
     await ProviderApiService.addVendorDocument(doc);
     const refreshed = await ProviderApiService.getVendorProfile();
     setProfile(refreshed);
@@ -193,8 +204,8 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
         {/* Top Bar */}
         <View style={styles.topBar}>
           <View>
-            <Text style={styles.topTitle}>Vendor Profile Setup</Text>
-            <Text style={styles.topSubTitle}>Complete your profile for partner approval</Text>
+            <Text style={styles.topTitle}>Partner Onboarding & Verification</Text>
+            <Text style={styles.topSubTitle}>Complete your profile & verification to receive bookings</Text>
           </View>
           {onLogout && (
             <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
@@ -205,6 +216,22 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
 
         {/* Dynamic Status Banner */}
         {profile && <VendorStatusBanner status={profile.status} />}
+
+        {/* Approved Partner Card with Partner Account ID */}
+        {profile?.status === 'APPROVED' && profile.partnerAccountId && (
+          <View style={styles.approvedCard}>
+            <View style={styles.approvedHeaderRow}>
+              <View>
+                <Text style={styles.approvedBadge}>✓ VERIFIED PARTNER</Text>
+                <Text style={styles.partnerIdLabel}>Public Partner Account ID</Text>
+                <Text style={styles.partnerIdValue}>{profile.partnerAccountId}</Text>
+              </View>
+            </View>
+            <Text style={styles.approvedDesc}>
+              Users can discover and book your services directly using this Partner ID.
+            </Text>
+          </View>
+        )}
 
         {/* Readiness Tracker */}
         {profile?.completeness && (
@@ -396,6 +423,7 @@ export const VendorOnboardingScreen: React.FC<VendorOnboardingScreenProps> = ({
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>4. Verification Documents</Text>
           <DocumentUploader
+            requirements={requirements}
             documents={profile?.documents || []}
             onAddDocument={handleAddDocument}
             onDeleteDocument={handleDeleteDocument}
@@ -546,6 +574,44 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.6,
+  },
+  approvedCard: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+  },
+  approvedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  approvedBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  partnerIdLabel: {
+    fontSize: 12,
+    color: '#065F46',
+    fontWeight: '600',
+  },
+  partnerIdValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#064E3B',
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  approvedDesc: {
+    fontSize: 12,
+    color: '#047857',
+    lineHeight: 16,
   },
 });
 
