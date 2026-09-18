@@ -318,6 +318,12 @@ export const VendorDiscoveryScreen: React.FC = () => {
                     </View>
                   </View>
 
+                  {vendor.partnerAccountId && (
+                    <View style={styles.partnerIdTagWrap}>
+                      <Text style={styles.partnerIdTagText}>ID: {vendor.partnerAccountId}</Text>
+                    </View>
+                  )}
+
                   <View style={styles.locationRow}>
                     <AppIcon name="location-outline" size={12} color="#D97706" />
                     <Text style={[styles.locationText, { marginLeft: 4 }]}>
@@ -796,6 +802,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#15803D',
+  },
+  partnerIdTagWrap: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  partnerIdTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#C2410C',
+    letterSpacing: 0.5,
   },
 });
 

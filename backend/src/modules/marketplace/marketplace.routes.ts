@@ -6,6 +6,7 @@ const controller = new MarketplaceController();
 
 // Public marketplace discovery endpoints
 router.get('/vendors', controller.listVendors);
+router.get('/vendors/account/:vendorId', controller.getVendor);
 router.get('/vendors/:vendorId', controller.getVendor);
 router.get('/categories', controller.listCategories);
 router.get('/services', controller.listServices);

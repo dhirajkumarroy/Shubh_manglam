@@ -40,4 +40,13 @@ router.post('/categories', controller.createCategory);
 router.patch('/categories/:id', controller.updateCategory);
 router.delete('/categories/:id', controller.deleteCategory);
 
+// =========================================================================
+// Document Requirements Management
+// =========================================================================
+router.get('/document-requirements', controller.listDocumentRequirements);
+router.post('/document-requirements', controller.createDocumentRequirement);
+router.patch('/document-requirements/:id', controller.updateDocumentRequirement);
+router.patch('/document-requirements/:id/toggle', controller.toggleDocumentRequirement);
+router.delete('/document-requirements/:id', controller.deleteDocumentRequirement);
+
 export default router;

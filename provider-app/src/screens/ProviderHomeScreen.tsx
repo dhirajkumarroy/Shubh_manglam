@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
@@ -28,6 +29,7 @@ interface ProviderHomeScreenProps {
   onNavigateToPackages?: () => void;
   onNavigateToLeads?: () => void;
   onNavigateToBookings?: () => void;
+  onNavigateToGallery?: () => void;
   onLogout?: () => void;
   vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   hideTopHeader?: boolean;
@@ -40,6 +42,7 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
   onNavigateToPackages,
   onNavigateToLeads,
   onNavigateToBookings,
+  onNavigateToGallery,
   onLogout,
   vendorStatus: initialStatus,
   hideTopHeader = true,
@@ -235,6 +238,35 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
           state={state}
         />
 
+        {/* Public Partner Account ID Banner */}
+        {profile?.partnerAccountId && (
+          <View style={styles.partnerIdCard}>
+            <View style={styles.partnerIdTopRow}>
+              <View>
+                <Text style={styles.partnerIdBadge}>
+                  {activeStatus === 'APPROVED' ? '✓ VERIFIED CELEBRATION PARTNER' : 'PARTNER ACCOUNT'}
+                </Text>
+                <Text style={styles.partnerIdHeading}>Public Partner Account ID</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.copyIdBtn}
+                onPress={() => {
+                  Alert.alert(
+                    'Partner ID Copied!',
+                    `ID: ${profile.partnerAccountId}\n\nShare this ID with hosts and clients to find your profile directly on Shubh Ausar.`
+                  );
+                }}
+              >
+                <Text style={styles.copyIdText}>📋 Copy ID</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.partnerIdNumber}>{profile.partnerAccountId}</Text>
+            <Text style={styles.partnerIdNote}>
+              Users can search and discover your celebration services directly using this ID.
+            </Text>
+          </View>
+        )}
+
         {/* C. Verification Status Card */}
         <VerificationCard
           status={activeStatus}
@@ -254,6 +286,7 @@ export const ProviderHomeScreen: React.FC<ProviderHomeScreenProps> = ({
           onManagePackages={onNavigateToPackages || onNavigateToCatalog || (() => {})}
           onManageProfile={onNavigateToOnboarding || (() => {})}
           onManageCalendar={onNavigateToBookings || (() => {})}
+          onManageGallery={onNavigateToGallery}
           onSeeAll={onNavigateToCatalog}
         />
 
@@ -370,6 +403,69 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#B91C1C',
+  },
+  partnerIdCard: {
+    backgroundColor: '#FFFDF9',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#FED7AA',
+    padding: 14,
+    marginBottom: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EA580C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+      default: {},
+    }),
+  },
+  partnerIdTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  partnerIdBadge: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.5,
+  },
+  partnerIdHeading: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#78716C',
+    marginTop: 1,
+  },
+  copyIdBtn: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  copyIdText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#C2410C',
+  },
+  partnerIdNumber: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1C1917',
+    letterSpacing: 1.2,
+    marginVertical: 4,
+  },
+  partnerIdNote: {
+    fontSize: 11,
+    color: '#78716C',
+    lineHeight: 15,
   },
 });
 

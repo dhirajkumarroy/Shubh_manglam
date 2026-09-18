@@ -28,6 +28,36 @@ export const syncVendorCategoriesSchema = z.object({
 export const createVendorDocumentSchema = z.object({
   documentType: z.nativeEnum(DocumentType, {
     errorMap: () => ({ message: 'Invalid document type. Allowed: BUSINESS_REGISTRATION, IDENTITY_PROOF, ADDRESS_PROOF, TAX_DOCUMENT, CERTIFICATE, OTHER' }),
-  }),
+  }).optional().default(DocumentType.OTHER),
   documentUrl: z.string().min(1, 'Document URL is required'),
+  requirementId: z.string().uuid().optional(),
+  originalFileName: z.string().optional(),
+  fileSize: z.number().optional(),
+  mimeType: z.string().optional(),
+});
+
+export const addGalleryMediaSchema = z.object({
+  mediaType: z.enum(['IMAGE', 'VIDEO'], {
+    errorMap: () => ({ message: 'mediaType must be IMAGE or VIDEO' }),
+  }),
+  url: z.string().min(1, 'Media URL is required'),
+  thumbnailUrl: z.string().optional(),
+  caption: z.string().max(300, 'Caption must be under 300 characters').optional(),
+  serviceId: z.string().uuid().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+export const updateGalleryMediaSchema = z.object({
+  caption: z.string().max(300, 'Caption must be under 300 characters').optional().nullable(),
+  serviceId: z.string().uuid().optional().nullable(),
+  sortOrder: z.number().int().optional(),
+});
+
+export const reorderGallerySchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string().uuid(),
+      sortOrder: z.number().int(),
+    })
+  ).min(1, 'At least one gallery item required for reordering'),
 });

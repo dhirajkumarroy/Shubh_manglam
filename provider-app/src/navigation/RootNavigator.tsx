@@ -11,6 +11,7 @@ import CatalogDashboardScreen from '../screens/CatalogDashboardScreen';
 import ServiceFormScreen from '../screens/ServiceFormScreen';
 import ServiceImagesScreen from '../screens/ServiceImagesScreen';
 import PackageFormScreen from '../screens/PackageFormScreen';
+import ProviderGalleryScreen from '../screens/ProviderGalleryScreen';
 import { ProviderApiService } from '../services/api';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -61,6 +62,7 @@ export const RootNavigator: React.FC = () => {
           <ProviderMainScreen
             vendorStatus={route.params?.vendorStatus}
             onNavigateToOnboarding={() => navigation.navigate('VendorOnboarding')}
+            onNavigateToGallery={() => navigation.navigate('ProviderGallery')}
             onAddService={() => navigation.navigate('ServiceForm')}
             onEditService={(id) => navigation.navigate('ServiceForm', { serviceId: id })}
             onManageImages={(serviceId, serviceName) =>
@@ -73,6 +75,11 @@ export const RootNavigator: React.FC = () => {
               navigation.replace('ProviderLogin');
             }}
           />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="ProviderGallery">
+        {({ navigation }) => (
+          <ProviderGalleryScreen onBack={() => navigation.goBack()} />
         )}
       </Stack.Screen>
       <Stack.Screen name="CatalogDashboard">

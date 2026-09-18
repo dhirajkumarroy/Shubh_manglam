@@ -3,6 +3,7 @@ import { Category, ServiceItem, PackageItem } from './catalog.service';
 
 export interface MarketplaceVendorItem {
   id: string;
+  partnerAccountId?: string | null;
   businessName: string;
   slug: string;
   description: string | null;
@@ -29,8 +30,44 @@ export interface MarketplaceVendorItem {
   createdAt: string;
 }
 
+export interface MarketplaceGalleryMediaItem {
+  id: string;
+  mediaType: 'IMAGE' | 'VIDEO';
+  url: string;
+  thumbnailUrl?: string | null;
+  caption?: string | null;
+  sortOrder: number;
+  serviceId?: string | null;
+  service?: { id: string; name: string; slug: string } | null;
+}
+
+export interface VendorReviewsBreakdown {
+  reviews: Array<{
+    id: string;
+    rating: number;
+    comment: string | null;
+    createdAt: string;
+    customer?: {
+      id: string;
+      name: string;
+      avatar: string | null;
+    };
+  }>;
+  total: number;
+  ratingAverage: number;
+  ratingCount: number;
+  distribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+
 export interface MarketplaceVendorDetail {
   id: string;
+  partnerAccountId?: string | null;
   businessName: string;
   slug: string;
   description: string | null;
@@ -52,6 +89,7 @@ export interface MarketplaceVendorDetail {
   categories: Category[];
   services: ServiceItem[];
   packages: PackageItem[];
+  galleryMedia?: MarketplaceGalleryMediaItem[];
   reviews: Array<{
     id: string;
     rating: number;
@@ -173,6 +211,28 @@ export const MarketplaceService = {
 
   async getPackageById(id: string): Promise<PackageItem> {
     const res = await apiClient.get<{ success: boolean; data: PackageItem }>(`/marketplace/packages/${id}`);
+    return res.data.data;
+  },
+
+  async getVendorReviews(
+    vendorId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<VendorReviewsBreakdown> {
+    const res = await apiClient.get<{ success: boolean; data: VendorReviewsBreakdown }>(
+      `/reviews/vendor/${vendorId}`,
+      { params: { page, limit } }
+    );
+    return res.data.data;
+  },
+
+  async getVendorGallery(
+    idOrSlug: string
+  ): Promise<{ items: MarketplaceGalleryMediaItem[]; totalCount: number; photosCount: number; videosCount: number }> {
+    const res = await apiClient.get<{
+      success: boolean;
+      data: { items: MarketplaceGalleryMediaItem[]; totalCount: number; photosCount: number; videosCount: number };
+    }>(`/vendor/gallery/${idOrSlug}`);
     return res.data.data;
   },
 };

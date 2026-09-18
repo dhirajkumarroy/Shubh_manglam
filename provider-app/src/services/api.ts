@@ -1,6 +1,23 @@
 import * as SecureStore from 'expo-secure-store';
+import {
+  DocumentRequirementItem,
+  VendorGalleryResponse,
+  VendorGalleryItem,
+  VendorReviewsResponse,
+} from '../types';
 
-const API_BASE_URL = 'http://10.44.62.6:8000/api/v1';
+export const API_BASE_URL = 'http://10.44.62.6:8000/api/v1';
+
+export function resolveMediaUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const host = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${host}${cleanPath}`;
+}
+
 
 export interface ProviderAuthUser {
   id: string;
@@ -220,7 +237,67 @@ export class ProviderApiService {
     return res.data;
   }
 
-  static async addVendorDocument(body: { documentType: string; documentUrl: string }): Promise<any> {
+  // -------------------------------------------------------------------------
+  // File Uploads (Multipart)
+  // -------------------------------------------------------------------------
+
+  static async uploadFile(
+    endpoint: string,
+    file: { uri: string; name: string; type: string }
+  ): Promise<{ url: string; fileName: string; originalName: string; mimeType: string; size: number }> {
+    const token = await this.getAccessToken();
+    const formData = new FormData();
+    formData.append('file', {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as any);
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'File upload failed');
+    }
+    return data.data;
+  }
+
+  static async uploadDocumentFile(file: { uri: string; name: string; type: string }) {
+    return this.uploadFile('/uploads/document', file);
+  }
+
+  static async uploadGalleryMediaFile(file: { uri: string; name: string; type: string }) {
+    return this.uploadFile('/uploads/gallery', file);
+  }
+
+  // -------------------------------------------------------------------------
+  // Document Requirements & Verification
+  // -------------------------------------------------------------------------
+
+  static async getDocumentRequirements(): Promise<DocumentRequirementItem[]> {
+    const res = await this.request<DocumentRequirementItem[]>('/vendor/document-requirements', {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async addVendorDocument(body: {
+    requirementId?: string;
+    documentType?: string;
+    documentUrl: string;
+    originalFileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }): Promise<any> {
     const res = await this.request<any>('/vendor/documents', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -239,6 +316,75 @@ export class ProviderApiService {
     const res = await this.request<any>('/vendor/submit-for-review', {
       method: 'POST',
     });
+    return res.data;
+  }
+
+  // -------------------------------------------------------------------------
+  // Partner Gallery
+  // -------------------------------------------------------------------------
+
+  static async getGallery(): Promise<VendorGalleryResponse> {
+    const res = await this.request<VendorGalleryResponse>('/vendor/gallery', {
+      method: 'GET',
+    });
+    return res.data;
+  }
+
+  static async addGalleryMedia(body: {
+    mediaType: 'IMAGE' | 'VIDEO';
+    url: string;
+    thumbnailUrl?: string;
+    caption?: string;
+    serviceId?: string;
+    sortOrder?: number;
+  }): Promise<VendorGalleryItem> {
+    const res = await this.request<VendorGalleryItem>('/vendor/gallery', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async updateGalleryMedia(
+    id: string,
+    body: { caption?: string; serviceId?: string | null; sortOrder?: number }
+  ): Promise<VendorGalleryItem> {
+    const res = await this.request<VendorGalleryItem>(`/vendor/gallery/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return res.data;
+  }
+
+  static async deleteGalleryMedia(id: string): Promise<void> {
+    await this.request(`/vendor/gallery/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async reorderGallery(orderedIds: string[]): Promise<VendorGalleryItem[]> {
+    const res = await this.request<VendorGalleryItem[]>('/vendor/gallery/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ orderedIds }),
+    });
+    return res.data;
+  }
+
+  // -------------------------------------------------------------------------
+  // Partner Reviews & Ratings
+  // -------------------------------------------------------------------------
+
+  static async getVendorReviews(
+    vendorId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<VendorReviewsResponse> {
+    const res = await this.request<VendorReviewsResponse>(
+      `/reviews/vendor/${vendorId}?page=${page}&limit=${limit}`,
+      {
+        method: 'GET',
+      }
+    );
     return res.data;
   }
 

@@ -22,6 +22,7 @@ import { FullVendorProfile } from '../types';
 interface ProviderMainScreenProps {
   vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   onNavigateToOnboarding: () => void;
+  onNavigateToGallery?: () => void;
   onAddService: () => void;
   onEditService: (id: string) => void;
   onManageImages: (serviceId: string, serviceName: string) => void;
@@ -33,6 +34,7 @@ interface ProviderMainScreenProps {
 export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
   vendorStatus: initialStatus,
   onNavigateToOnboarding,
+  onNavigateToGallery,
   onAddService,
   onEditService,
   onManageImages,
@@ -104,6 +106,7 @@ export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
             onNavigateToPackages={() => setActiveTab('PACKAGES')}
             onNavigateToLeads={() => setActiveTab('INQUIRIES')}
             onNavigateToBookings={() => setActiveTab('BOOKINGS')}
+            onNavigateToGallery={onNavigateToGallery}
             onLogout={onLogout}
           />
         )}
@@ -148,6 +151,7 @@ export const ProviderMainScreen: React.FC<ProviderMainScreenProps> = ({
           <ProviderProfileView
             profile={profile}
             onNavigateToOnboarding={onNavigateToOnboarding}
+            onNavigateToGallery={onNavigateToGallery}
             onLogout={onLogout}
           />
         )}

@@ -57,6 +57,11 @@ enum DocumentStatus {
   REJECTED
 }
 
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
 // =========================================================================
 // 3. ENUMS — SERVICES & PRICING
 // =========================================================================
@@ -379,6 +384,7 @@ model Vendor {
   longitude         Decimal      @db.Decimal(10, 7)
   operatingRadiusKm Decimal      @default(25.0) @db.Decimal(6, 2)
   status            VendorStatus @default(PENDING)
+  partnerAccountId  String?      @unique
   isVerified        Boolean      @default(false)
   isActive          Boolean      @default(true)
   ratingAverage     Decimal      @default(0.0) @db.Decimal(3, 2)
@@ -387,14 +393,15 @@ model Vendor {
   updatedAt         DateTime     @updatedAt
 
   // Relations
-  user           User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
   documents      VendorDocument[]
   categories     VendorCategory[]
   services       Service[]
   packages       Package[]
-  quotes         Quote[]          @relation("VendorQuotes")
-  bookings       Booking[]        @relation("VendorBookings")
-  reviews        Review[]         @relation("VendorReviews")
+  galleryMedia   VendorGalleryMedia[]
+  quotes         Quote[]              @relation("VendorQuotes")
+  bookings       Booking[]            @relation("VendorBookings")
+  reviews        Review[]             @relation("VendorReviews")
   favorites      Favorite[]
   availabilities Availability[]
   timeSlots      TimeSlot[]
@@ -402,6 +409,7 @@ model Vendor {
   payouts        VendorPayout[]
 
   @@index([userId])
+  @@index([partnerAccountId])
   @@index([status])
   @@index([city])
   @@index([latitude, longitude])
@@ -410,21 +418,70 @@ model Vendor {
   @@map("vendors")
 }
 
-model VendorDocument {
-  id              String         @id @default(uuid())
-  vendorId        String
-  documentType    DocumentType
-  documentUrl     String
-  status          DocumentStatus @default(PENDING)
-  rejectionReason String?        @db.Text
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+model DocumentRequirement {
+  id                String           @id @default(uuid())
+  code              String           @unique
+  name              String
+  description       String?          @db.Text
+  documentType      DocumentType     @default(OTHER)
+  isRequired        Boolean          @default(true)
+  acceptedFileTypes String[]         @default(["image/jpeg", "image/png", "application/pdf"])
+  maxFileSizeMb     Int              @default(5)
+  isActive          Boolean          @default(true)
+  sortOrder         Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorDocuments   VendorDocument[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("document_requirements")
+}
+
+model VendorDocument {
+  id               String               @id @default(uuid())
+  vendorId         String
+  requirementId    String?
+  documentType     DocumentType
+  documentUrl      String
+  originalFileName String?
+  fileSize         Int?
+  mimeType         String?
+  status           DocumentStatus       @default(PENDING)
+  rejectionReason  String?              @db.Text
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  vendor           Vendor               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  requirement      DocumentRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
 
   @@index([vendorId])
+  @@index([requirementId])
   @@index([status])
   @@map("vendor_documents")
+}
+
+model VendorGalleryMedia {
+  id           String    @id @default(uuid())
+  vendorId     String
+  serviceId    String?
+  mediaType    MediaType @default(IMAGE)
+  url          String
+  thumbnailUrl String?
+  caption      String?   @db.Text
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  vendor       Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  service      Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([serviceId])
+  @@index([mediaType])
+  @@index([sortOrder])
+  @@map("vendor_gallery_media")
 }
 
 // =========================================================================
@@ -504,6 +561,7 @@ model Service {
   subcategory     Category?        @relation("SubcategoryServices", fields: [subcategoryId], references: [id], onDelete: SetNull)
   eventType       EventType?       @relation(fields: [eventTypeId], references: [id], onDelete: SetNull)
   images          ServiceImage[]
+  galleryMedia    VendorGalleryMedia[]
   packageServices PackageService[]
   bookingItems    BookingItem[]
   quoteItems      QuoteItem[]

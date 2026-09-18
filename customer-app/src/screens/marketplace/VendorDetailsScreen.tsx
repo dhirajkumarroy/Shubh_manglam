@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,9 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  Modal,
+  Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -16,6 +19,23 @@ import { openDialer, openWhatsApp } from '../../utils/contact';
 import { InquiryModal } from '../../components/InquiryModal';
 import RequestQuoteModal from '../quotes/RequestQuoteModal';
 import { AppIcon } from '../../components/AppIcon';
+import {
+  MarketplaceService,
+  MarketplaceGalleryMediaItem,
+  VendorReviewsBreakdown,
+} from '../../api/marketplace.service';
+import Config from '../../config';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GALLERY_COL_WIDTH = (SCREEN_WIDTH - 44) / 2;
+
+const resolveMediaUrl = (url?: string | null): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const host = Config.API_URL.replace(/\/api\/v1\/?$/, '');
+  const clean = url.startsWith('/') ? url : `/${url}`;
+  return `${host}${clean}`;
+};
 
 export const VendorDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -25,14 +45,27 @@ export const VendorDetailsScreen: React.FC = () => {
   const longitude = route.params?.longitude;
   const eventId = route.params?.eventId;
 
-  const [activeTab, setActiveTab] = useState<'services' | 'packages' | 'reviews' | 'about'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'packages' | 'gallery' | 'reviews' | 'about'>('services');
   const [inquiryModalVisible, setInquiryModalVisible] = useState<boolean>(false);
   const [quoteModalVisible, setQuoteModalVisible] = useState<boolean>(false);
+
+  // Gallery & Reviews State
+  const [reviewsBreakdown, setReviewsBreakdown] = useState<VendorReviewsBreakdown | null>(null);
+  const [galleryFilter, setGalleryFilter] = useState<'ALL' | 'IMAGE' | 'VIDEO'>('ALL');
+  const [selectedPreviewMedia, setSelectedPreviewMedia] = useState<MarketplaceGalleryMediaItem | null>(null);
 
   const { data: vendor, isLoading, refetch } = useVendorDetails(
     vendorId,
     latitude && longitude ? { latitude, longitude } : undefined
   );
+
+  useEffect(() => {
+    if (vendor?.id) {
+      MarketplaceService.getVendorReviews(vendor.id)
+        .then((res) => setReviewsBreakdown(res))
+        .catch(() => {});
+    }
+  }, [vendor?.id]);
 
   if (isLoading) {
     return (
@@ -73,6 +106,15 @@ export const VendorDetailsScreen: React.FC = () => {
     };
     return `₹${svc.basePrice?.toLocaleString() || 0} ${unitMap[svc.pricingType] || ''}`;
   };
+
+  const galleryItems = vendor.galleryMedia || [];
+  const photoItems = galleryItems.filter((i) => i.mediaType === 'IMAGE');
+  const videoItems = galleryItems.filter((i) => i.mediaType === 'VIDEO');
+  const filteredGalleryItems = galleryItems.filter((i) => {
+    if (galleryFilter === 'IMAGE') return i.mediaType === 'IMAGE';
+    if (galleryFilter === 'VIDEO') return i.mediaType === 'VIDEO';
+    return true;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,6 +160,32 @@ export const VendorDetailsScreen: React.FC = () => {
                 <Text style={styles.reviewCountText}>({vendor.ratingCount})</Text>
               </View>
             </View>
+
+            {/* Public Partner Account ID Banner */}
+            {vendor.partnerAccountId && (
+              <TouchableOpacity
+                style={styles.partnerAccountCard}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Alert.alert(
+                    'Partner Account ID Copied!',
+                    `Partner ID: ${vendor.partnerAccountId}\n\nYou can use this ID anytime in Shubh Ausar search to directly find this partner.`
+                  );
+                }}
+              >
+                <View style={styles.partnerAccountLeft}>
+                  <View style={styles.verifiedPartnerBadge}>
+                    <Text style={styles.verifiedPartnerBadgeText}>✓ VERIFIED CELEBRATION PARTNER</Text>
+                  </View>
+                  <Text style={styles.partnerAccountIdVal}>
+                    Partner ID: <Text style={{ color: '#C2410C', fontWeight: '900' }}>{vendor.partnerAccountId}</Text>
+                  </Text>
+                </View>
+                <View style={styles.partnerCopyBtnWrap}>
+                  <Text style={styles.partnerCopyBtnText}>📋 Copy</Text>
+                </View>
+              </TouchableOpacity>
+            )}
 
             {vendor.description && (
               <Text style={styles.descriptionText}>{vendor.description}</Text>
@@ -167,7 +235,8 @@ export const VendorDetailsScreen: React.FC = () => {
           {[
             { key: 'services', label: `Services (${vendor.services.length})` },
             { key: 'packages', label: `Packages (${vendor.packages.length})` },
-            { key: 'reviews', label: `Reviews (${vendor.reviews.length})` },
+            { key: 'gallery', label: `Gallery (${galleryItems.length})` },
+            { key: 'reviews', label: `Reviews (${reviewsBreakdown?.total ?? vendor.ratingCount ?? vendor.reviews.length})` },
             { key: 'about', label: 'About' },
           ].map((tab) => (
             <TouchableOpacity
@@ -307,21 +376,166 @@ export const VendorDetailsScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Tab 3: Reviews */}
+        {/* Tab 3: Partner Gallery */}
+        {activeTab === 'gallery' && (
+          <View style={styles.tabContent}>
+            {/* Gallery Limits & Filter Header */}
+            <View style={styles.galleryHeaderCard}>
+              <View style={styles.galleryCounterRow}>
+                <View style={styles.galleryCountBadge}>
+                  <Text style={styles.galleryCountBadgeText}>
+                    📸 {photoItems.length} / 10 Photos
+                  </Text>
+                </View>
+                <View style={[styles.galleryCountBadge, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                  <Text style={[styles.galleryCountBadgeText, { color: '#1E40AF' }]}>
+                    🎥 {videoItems.length} / 5 Videos
+                  </Text>
+                </View>
+              </View>
+
+              {/* Filter Pills */}
+              <View style={styles.galleryFilterRow}>
+                <TouchableOpacity
+                  style={[styles.galleryPill, galleryFilter === 'ALL' && styles.galleryPillActive]}
+                  onPress={() => setGalleryFilter('ALL')}
+                >
+                  <Text style={[styles.galleryPillText, galleryFilter === 'ALL' && styles.galleryPillTextActive]}>
+                    All ({galleryItems.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.galleryPill, galleryFilter === 'IMAGE' && styles.galleryPillActive]}
+                  onPress={() => setGalleryFilter('IMAGE')}
+                >
+                  <Text style={[styles.galleryPillText, galleryFilter === 'IMAGE' && styles.galleryPillTextActive]}>
+                    Photos ({photoItems.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.galleryPill, galleryFilter === 'VIDEO' && styles.galleryPillActive]}
+                  onPress={() => setGalleryFilter('VIDEO')}
+                >
+                  <Text style={[styles.galleryPillText, galleryFilter === 'VIDEO' && styles.galleryPillTextActive]}>
+                    Videos ({videoItems.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {filteredGalleryItems.length === 0 ? (
+              <View style={styles.emptyTabBox}>
+                <Text style={styles.emptyTabIcon}>📸</Text>
+                <Text style={styles.emptyTabTitle}>No Media Added</Text>
+                <Text style={styles.emptyTabSub}>
+                  This partner has not added photos or videos to their celebration gallery yet.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.galleryGrid}>
+                {filteredGalleryItems.map((item) => {
+                  const isVideo = item.mediaType === 'VIDEO';
+                  const displayUrl = resolveMediaUrl(item.thumbnailUrl || item.url);
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.galleryGridItem}
+                      activeOpacity={0.88}
+                      onPress={() => setSelectedPreviewMedia(item)}
+                    >
+                      <Image
+                        source={{ uri: displayUrl }}
+                        style={styles.galleryItemImg}
+                        resizeMode="cover"
+                      />
+                      {isVideo && (
+                        <View style={styles.galleryVideoBadge}>
+                          <Text style={styles.galleryVideoBadgeText}>▶ VIDEO</Text>
+                        </View>
+                      )}
+                      {item.caption ? (
+                        <View style={styles.galleryCaptionOverlay}>
+                          <Text style={styles.galleryCaptionText} numberOfLines={1}>
+                            {item.caption}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Tab 4: Reviews */}
         {activeTab === 'reviews' && (
           <View style={styles.tabContent}>
-            {vendor.reviews.length === 0 ? (
+            {/* Reviews Breakdown Header Card */}
+            <View style={styles.reviewsSummaryCard}>
+              <View style={styles.ratingBigCol}>
+                <Text style={styles.ratingBigScore}>
+                  {vendor.ratingAverage ? Number(vendor.ratingAverage).toFixed(1) : '5.0'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 2, marginVertical: 4 }}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <AppIcon
+                      key={s}
+                      name="star"
+                      size={15}
+                      color={s <= Math.round(vendor.ratingAverage || 5) ? '#F59E0B' : '#E5E7EB'}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.ratingTotalText}>
+                  Based on {reviewsBreakdown?.total ?? vendor.ratingCount ?? vendor.reviews.length} reviews
+                </Text>
+              </View>
+
+              {/* 5-Star Distribution Bars */}
+              <View style={styles.distributionCol}>
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = (reviewsBreakdown?.distribution as any)?.[star] || 0;
+                  const total = reviewsBreakdown?.total || vendor.ratingCount || 1;
+                  const pct = total > 0 ? (count / total) * 100 : 0;
+                  return (
+                    <View key={star} style={styles.distRow}>
+                      <Text style={styles.distStarLabel}>{star}★</Text>
+                      <View style={styles.distBarBg}>
+                        <View style={[styles.distBarFill, { width: `${pct}%` }]} />
+                      </View>
+                      <Text style={styles.distCountLabel}>{count}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Reviews List */}
+            {vendor.reviews.length === 0 && (!reviewsBreakdown || reviewsBreakdown.reviews.length === 0) ? (
               <View style={styles.emptyTabBox}>
                 <AppIcon name="star-outline" size={36} color="#D97706" />
                 <Text style={styles.emptyTabTitle}>No Reviews Yet</Text>
-                <Text style={styles.emptyTabSub}>Be the first to book and review this provider.</Text>
+                <Text style={styles.emptyTabSub}>Be the first to book and review this partner.</Text>
               </View>
             ) : (
               <View style={styles.reviewsList}>
-                {vendor.reviews.map((r) => (
+                {(reviewsBreakdown?.reviews || vendor.reviews).map((r: any) => (
                   <View key={r.id} style={styles.reviewCard}>
                     <View style={styles.reviewHeader}>
-                      <Text style={styles.reviewerName}>{r.customerName || 'Verified User'}</Text>
+                      <View style={styles.reviewerMetaRow}>
+                        <View style={styles.reviewerAvatar}>
+                          <Text style={styles.reviewerAvatarText}>
+                            {(r.customerName || r.customer?.name || 'U').slice(0, 1).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View>
+                          <Text style={styles.reviewerName}>
+                            {r.customerName || r.customer?.name || 'Verified Customer'}
+                          </Text>
+                          <Text style={styles.verifiedBookingTag}>✓ Verified Celebration Booking</Text>
+                        </View>
+                      </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         {Array.from({ length: Math.min(5, Math.max(1, r.rating || 5)) }).map((_, i) => (
                           <AppIcon key={i} name="star" size={13} color="#F59E0B" />
@@ -330,7 +544,11 @@ export const VendorDetailsScreen: React.FC = () => {
                     </View>
                     {r.comment && <Text style={styles.reviewComment}>{r.comment}</Text>}
                     <Text style={styles.reviewDate}>
-                      {new Date(r.createdAt).toLocaleDateString('en-IN')}
+                      {new Date(r.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
                     </Text>
                   </View>
                 ))}
@@ -439,6 +657,50 @@ export const VendorDetailsScreen: React.FC = () => {
         vendorName={vendor.businessName}
         onSuccess={() => navigation.navigate('CustomerInquiriesScreen')}
       />
+
+      {/* Fullscreen Media Preview Modal */}
+      <Modal
+        visible={!!selectedPreviewMedia}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedPreviewMedia(null)}
+      >
+        <View style={styles.previewBackdrop}>
+          <TouchableOpacity
+            style={styles.previewCloseBtn}
+            onPress={() => setSelectedPreviewMedia(null)}
+          >
+            <Text style={styles.previewCloseBtnText}>✕ Close</Text>
+          </TouchableOpacity>
+
+          {selectedPreviewMedia && (
+            <View style={styles.previewContent}>
+              <Image
+                source={{ uri: resolveMediaUrl(selectedPreviewMedia.url) }}
+                style={styles.previewMediaImage}
+                resizeMode="contain"
+              />
+              <View style={styles.previewInfoBox}>
+                <View style={styles.previewHeaderRow}>
+                  <Text style={styles.previewTypeTag}>
+                    {selectedPreviewMedia.mediaType === 'VIDEO' ? '🎥 VIDEO' : '📸 PHOTO'}
+                  </Text>
+                  {selectedPreviewMedia.service && (
+                    <Text style={styles.previewServiceTag}>
+                      🏷 {selectedPreviewMedia.service.name}
+                    </Text>
+                  )}
+                </View>
+                {selectedPreviewMedia.caption ? (
+                  <Text style={styles.previewCaptionText}>
+                    {selectedPreviewMedia.caption}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1000,6 +1262,303 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  // Partner Account ID Badge
+  partnerAccountCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFDF9',
+    borderWidth: 1.5,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  partnerAccountLeft: {
+    flex: 1,
+    marginRight: 8,
+  },
+  verifiedPartnerBadge: {
+    backgroundColor: '#DCFCE7',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  verifiedPartnerBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#15803D',
+    letterSpacing: 0.5,
+  },
+  partnerAccountIdVal: {
+    fontSize: 13,
+    color: '#1C1917',
+    fontWeight: '700',
+  },
+  partnerCopyBtnWrap: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  partnerCopyBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#C2410C',
+  },
+  // Gallery Tab Styles
+  galleryHeaderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  galleryCounterRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  galleryCountBadge: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  galleryCountBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#C2410C',
+  },
+  galleryFilterRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  galleryPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  galleryPillActive: {
+    backgroundColor: '#881337',
+    borderColor: '#881337',
+  },
+  galleryPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  galleryPillTextActive: {
+    color: '#FFFFFF',
+  },
+  galleryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  galleryGridItem: {
+    width: GALLERY_COL_WIDTH,
+    height: 140,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#E5E7EB',
+    position: 'relative',
+  },
+  galleryItemImg: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryVideoBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(30, 58, 138, 0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  galleryVideoBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  galleryCaptionOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  galleryCaptionText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '600',
+  },
+  // Reviews Breakdown Styles
+  reviewsSummaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingBigCol: {
+    alignItems: 'center',
+    paddingRight: 18,
+    borderRightWidth: 1,
+    borderRightColor: '#F3F4F6',
+    minWidth: 105,
+  },
+  ratingBigScore: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#1C1917',
+    lineHeight: 38,
+  },
+  ratingTotalText: {
+    fontSize: 10,
+    color: '#78716C',
+    textAlign: 'center',
+  },
+  distributionCol: {
+    flex: 1,
+    paddingLeft: 16,
+    gap: 4,
+  },
+  distRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  distStarLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#4B5563',
+    width: 22,
+  },
+  distBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  distBarFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 3,
+  },
+  distCountLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    width: 18,
+    textAlign: 'right',
+  },
+  reviewerMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reviewerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#881337',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  verifiedBookingTag: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#15803D',
+    marginTop: 1,
+  },
+  // Fullscreen Preview Modal Styles
+  previewBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+  },
+  previewCloseBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  previewContent: {
+    width: '92%',
+    alignItems: 'center',
+  },
+  previewMediaImage: {
+    width: '100%',
+    height: 360,
+    borderRadius: 12,
+  },
+  previewInfoBox: {
+    width: '100%',
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  previewHeaderRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 6,
+  },
+  previewTypeTag: {
+    backgroundColor: '#C2410C',
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  previewServiceTag: {
+    backgroundColor: '#1E40AF',
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  previewCaptionText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
 

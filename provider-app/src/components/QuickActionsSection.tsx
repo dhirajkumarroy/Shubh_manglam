@@ -14,6 +14,7 @@ interface QuickActionsSectionProps {
   onManagePackages: () => void;
   onManageProfile: () => void;
   onManageCalendar: () => void;
+  onManageGallery?: () => void;
   onSeeAll?: () => void;
 }
 
@@ -22,9 +23,23 @@ export const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
   onManagePackages,
   onManageProfile,
   onManageCalendar,
+  onManageGallery,
   onSeeAll,
 }) => {
   const actions = [
+    {
+      key: 'GALLERY',
+      title: 'Partner\nGallery',
+      icon: 'images-outline',
+      iconType: 'ionicons' as const,
+      iconColor: '#047857',
+      iconBg: '#D1FAE5',
+      bg: '#ECFDF5',
+      border: '#A7F3D0',
+      btnBg: '#6EE7B7',
+      btnChevron: '#065F46',
+      onPress: onManageGallery || onSeeAll,
+    },
     {
       key: 'SERVICES',
       title: 'Manage\nServices',

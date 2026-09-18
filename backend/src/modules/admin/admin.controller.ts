@@ -227,6 +227,63 @@ export class AdminController {
       next(error);
     }
   };
+
+  // =========================================================================
+  // Document Requirement Governance Controllers
+  // =========================================================================
+
+  listDocumentRequirements = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const requirements = await documentRequirementService.adminListRequirements();
+      res.status(200).json(ResponseDto.success('Document requirements retrieved successfully.', requirements));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const requirement = await documentRequirementService.createRequirement(req.body);
+      res.status(201).json(ResponseDto.success('Document requirement created successfully.', requirement));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const updated = await documentRequirementService.updateRequirement(id, req.body);
+      res.status(200).json(ResponseDto.success('Document requirement updated successfully.', updated));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  toggleDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const updated = await documentRequirementService.toggleActive(id);
+      res.status(200).json(ResponseDto.success('Document requirement status updated.', updated));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteDocumentRequirement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { documentRequirementService } = await import('../vendors/document-requirement.service');
+      const result = await documentRequirementService.deleteRequirement(id);
+      res.status(200).json(ResponseDto.success(result.message, result));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default AdminController;

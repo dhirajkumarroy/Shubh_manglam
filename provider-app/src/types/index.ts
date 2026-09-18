@@ -4,6 +4,7 @@ export type RootStackParamList = {
   ProviderRegister: undefined;
   VendorOnboarding: undefined;
   ProviderHome: { vendorStatus?: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' } | undefined;
+  ProviderGallery: undefined;
   CatalogDashboard: undefined;
   ServiceForm: { serviceId?: string } | undefined;
   ServiceImages: { serviceId: string; serviceName: string };
@@ -94,13 +95,57 @@ export interface ServiceCategory {
   subcategories?: ServiceCategory[];
 }
 
+export interface DocumentRequirementItem {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  documentType: string;
+  isRequired: boolean;
+  acceptedFileTypes: string[];
+  maxFileSizeMb: number;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 export interface VendorDocumentItem {
   id: string;
+  requirementId?: string | null;
   documentType: 'BUSINESS_REGISTRATION' | 'IDENTITY_PROOF' | 'ADDRESS_PROOF' | 'TAX_DOCUMENT' | 'CERTIFICATE' | 'OTHER';
   documentUrl: string;
+  originalFileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   rejectionReason?: string | null;
   createdAt: string;
+  requirement?: DocumentRequirementItem | null;
+}
+
+export interface VendorGalleryItem {
+  id: string;
+  vendorId: string;
+  serviceId?: string | null;
+  mediaType: 'IMAGE' | 'VIDEO';
+  url: string;
+  thumbnailUrl?: string | null;
+  caption?: string | null;
+  sortOrder: number;
+  createdAt: string;
+  service?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+}
+
+export interface VendorGalleryResponse {
+  photosCount: number;
+  videosCount: number;
+  maxPhotos: number;
+  maxVideos: number;
+  totalCount: number;
+  items: VendorGalleryItem[];
 }
 
 export interface ProfileCompleteness {
@@ -112,6 +157,7 @@ export interface ProfileCompleteness {
 export interface FullVendorProfile {
   id: string;
   userId: string;
+  partnerAccountId?: string | null;
   businessName: string;
   slug: string;
   description: string | null;
@@ -153,3 +199,34 @@ export interface FullVendorProfile {
     avatar?: string | null;
   };
 }
+
+export interface ReviewItem {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  vendorId: string;
+  rating: number;
+  comment: string | null;
+  isPublished: boolean;
+  createdAt: string;
+  customer?: {
+    id: string;
+    name: string;
+    avatar: string | null;
+  };
+}
+
+export interface VendorReviewsResponse {
+  reviews: ReviewItem[];
+  total: number;
+  ratingAverage: number;
+  ratingCount: number;
+  distribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+

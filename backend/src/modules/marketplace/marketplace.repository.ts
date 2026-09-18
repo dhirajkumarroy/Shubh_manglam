@@ -48,6 +48,7 @@ export class MarketplaceRepository {
         { businessName: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
         { city: { contains: search, mode: 'insensitive' } },
+        { partnerAccountId: { equals: search.trim(), mode: 'insensitive' } },
       ];
     }
 
@@ -114,6 +115,7 @@ export class MarketplaceRepository {
       orderBy,
       select: {
         id: true,
+        partnerAccountId: true,
         businessName: true,
         slug: true,
         description: true,
@@ -182,6 +184,7 @@ export class MarketplaceRepository {
         ratingAverage: Number(v.ratingAverage),
         ratingCount: v.ratingCount,
         distanceKm,
+        partnerAccountId: v.partnerAccountId,
         categories: v.categories.map((c) => c.category),
         createdAt: v.createdAt,
       };
@@ -222,7 +225,7 @@ export class MarketplaceRepository {
   ) {
     const vendor = await prisma.vendor.findFirst({
       where: {
-        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }, { partnerAccountId: idOrSlug }],
         status: VendorStatus.APPROVED,
         isActive: true,
       },
@@ -230,6 +233,14 @@ export class MarketplaceRepository {
         categories: {
           include: {
             category: true,
+          },
+        },
+        galleryMedia: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+          include: {
+            service: {
+              select: { id: true, name: true, slug: true },
+            },
           },
         },
         services: {
@@ -365,6 +376,8 @@ export class MarketplaceRepository {
         customerName: r.customer.name,
         customerAvatar: r.customer.avatar,
       })),
+      partnerAccountId: vendor.partnerAccountId,
+      galleryMedia: (vendor as any).galleryMedia || [],
     };
   }
 
